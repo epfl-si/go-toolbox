@@ -3,7 +3,7 @@ module github.com/epfl-si/go-toolbox
 go 1.21.4
 
 require (
-	go.uber.org/zap v1.26.0
+	go.uber.org/zap v1.27.0
 	gorm.io/gorm v1.25.7
 )
 
