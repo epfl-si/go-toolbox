@@ -2,12 +2,12 @@
 ## Summary
 This a Go module to centralize all common functions and utilities we use in our Go development at IAM team.
 
-### Packages
-#### api
+## Packages
+### api
 API related functions to call API gateway endpoints. Provides a generic function CallApi and specialized functions for specific items (GetPerson, GetAuthorizations, GetAccreds, etc.).
 It also provides the structures for the most common business artefacts with JSON annotation for unmarshalling.
 
-#### log
+### log
 It provides mainly a GetLogger function to get a commonly configured zap logger.
 
 ### database
