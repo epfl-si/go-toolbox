@@ -11,7 +11,22 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// GetGormDB initializes a connection to the database and returns a handle
+// GetGormDB returns a Gorm database connection.
+//
+// Parameters:
+// - log *zap.Logger: a logger instance
+// - host string: the database host
+// - name string: the database name
+// - user string: the database user
+// - pass string: the database password
+// - port string: the database port
+// - param string: the specific database parameters
+// - maxIdle int: the maximum number of idle connections
+// - maxOpen int: the maximum number of open connections
+//
+// Return type(s):
+// - *gorm.DB: the Gorm database connection
+// - error: an error, if any, encountered during the connection
 func GetGormDB(log *zap.Logger, host, name, user, pass, port, param string, maxIdle int, maxOpen int) (*gorm.DB, error) {
 	//log.Infof("[GetGormDB] Connecting to 'database' %s on host %s as user '%s' (%s)", name, host, user, param)
 	logLevel := logger.Silent

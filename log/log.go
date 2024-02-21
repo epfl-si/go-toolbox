@@ -5,6 +5,13 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// GetLogger returns a new logger with the specified log level.
+//
+// Parameters:
+// - logLevel: a string representing the log level ("debug", "error", "warn", "fatal")
+//
+// Return type(s):
+// - *zap.Logger: a pointer to the logger
 func GetLogger(logLevel string) *zap.Logger {
 	level := zap.InfoLevel
 	if logLevel == "debug" {
