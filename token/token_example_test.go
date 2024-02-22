@@ -3,7 +3,7 @@ package token_test
 import (
 	"fmt"
 
-	"github.com/epfl-si/go-toolkit/token"
+	"github.com/epfl-si/go-toolbox/token"
 )
 
 func Example_creating() {
