@@ -3,7 +3,6 @@ package notifier
 import (
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -30,7 +29,6 @@ func Notify(args map[string]string) error {
 	if err != nil {
 		return errors.New("NotifierInvalidRequest")
 	}
-	fmt.Println("calling notifier URL " + os.Getenv("NOTIFIER") + "?" + argsStr)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := client.Do(req)
