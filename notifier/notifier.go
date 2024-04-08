@@ -14,7 +14,7 @@ func Notify(args map[string]string) error {
 	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{Transport: customTransport}
 
-	if os.Getenv("NOTIFIER_APP") == "" || os.Getenv("NOTIFIER_CALLER") == "" || os.Getenv("NOTIFIER_PWD") == "" {
+	if os.Getenv("NOTIFIER_APP") == "" || os.Getenv("NOTIFIER_CALLER") == "" || os.Getenv("NOTIFIER_PWD") == "" || os.Getenv("NOTIFIER") == "" {
 		return errors.New("NotifierEmptyEnvironmentVariables")
 	}
 	args["app"] = os.Getenv("NOTIFIER_APP")
