@@ -17,7 +17,7 @@ import (
 )
 
 func getBatchLogger(logLevel string) *zap.Logger {
-	return zap.Must(log.GetLoggerConfig(logLevel, []string{"stdout", "/tmp/stdout"}, []string{"stderr", "/tmp/stderr"}, "console").Build())
+	return zap.Must(log.GetLoggerConfig(logLevel, []string{"stdout", "/tmp/stdout"}, []string{"stderr", "/tmp/stderr"}, "json").Build())
 }
 
 func Log(logger *zap.Logger, priority, message string) {
@@ -69,7 +69,7 @@ func InitBatch() (batch.BatchConfig, error) {
 	//}
 	//readFile.Close()
 
-	db, err := database.GetGormDB(logger, os.Getenv("DB_HOST"), os.Getenv("DB_NAME"), os.Getenv("DB_USER"), os.Getenv("DB_PWD"), os.Getenv("DB_PORT"), os.Getenv("DB_PARAMS"), 1, 1)
+	db, err := database.GetGormDB(logger, os.Getenv("CADI_DB_HOST"), os.Getenv("CADI_DB_NAME"), os.Getenv("CADI_DB_USER"), os.Getenv("CADI_DB_PWD"), os.Getenv("CADI_DB_PORT"), os.Getenv("CADI_DB_PARAMS"), 1, 1)
 	if err != nil {
 		return batch.BatchConfig{Logger: logger}, err
 	}
