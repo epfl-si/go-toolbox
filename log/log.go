@@ -5,7 +5,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func GetLoggerConfig(logLevel string, stdouts []string, stderrs []string) zap.Config {
+func GetLoggerConfig(logLevel string, stdouts []string, stderrs []string, encoding string) zap.Config {
 	level := zap.InfoLevel
 	if logLevel == "debug" {
 		level = zap.DebugLevel
@@ -33,7 +33,7 @@ func GetLoggerConfig(logLevel string, stdouts []string, stderrs []string) zap.Co
 		DisableCaller:     true,
 		DisableStacktrace: false,
 		Sampling:          nil,
-		Encoding:          "json",
+		Encoding:          encoding,
 		EncoderConfig:     encoderCfg,
 		OutputPaths:       stdouts,
 		ErrorOutputPaths:  stderrs,
@@ -53,5 +53,5 @@ func GetLoggerConfig(logLevel string, stdouts []string, stderrs []string) zap.Co
 // Return type(s):
 // - *zap.Logger: a pointer to the logger
 func GetLogger(logLevel string) *zap.Logger {
-	return zap.Must(GetLoggerConfig(logLevel, []string{"stdout"}, []string{"stderr"}).Build())
+	return zap.Must(GetLoggerConfig(logLevel, []string{"stdout"}, []string{"stderr"}, "json").Build())
 }

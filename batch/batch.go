@@ -1,7 +1,6 @@
 package batch
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,7 +17,7 @@ import (
 )
 
 func getBatchLogger(logLevel string) *zap.Logger {
-	return zap.Must(log.GetLoggerConfig(logLevel, []string{"stdout", "/tmp/stdout"}, []string{"stderr", "/tmp/stderr"}).Build())
+	return zap.Must(log.GetLoggerConfig(logLevel, []string{"stdout", "/tmp/stdout"}, []string{"stderr", "/tmp/stderr"}, "console").Build())
 }
 
 func Log(logger *zap.Logger, priority, message string) {
@@ -57,20 +56,20 @@ func InitBatch() (batch.BatchConfig, error) {
 		logger.Info(fmt.Sprintf("Unable to load /home/dinfo/conf/.env file: %s", err))
 	}
 
-	readFile, err := os.Open("/home/dinfo/conf/.env")
-	if err != nil {
-		fmt.Println(err)
-	}
-	fileScanner := bufio.NewScanner(readFile)
-	fileScanner.Split(bufio.ScanLines)
+	//readFile, err := os.Open("/home/dinfo/conf/.env")
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
+	//fileScanner := bufio.NewScanner(readFile)
+	//fileScanner.Split(bufio.ScanLines)
 
-	for fileScanner.Scan() {
-		// Should check if contains PASS and not display
-		logger.Info(fileScanner.Text())
-	}
-	readFile.Close()
+	//for fileScanner.Scan() {
+	//	// Should check if contains PASS and not display
+	//	logger.Info(fileScanner.Text())
+	//}
+	//readFile.Close()
 
-	db, err := database.GetGormDB(logger, os.Getenv("DB_HOST"), os.Getenv("DB_NAME"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_PORT"), os.Getenv("DB_PARAMS"), 1, 1)
+	db, err := database.GetGormDB(logger, os.Getenv("DB_HOST"), os.Getenv("DB_NAME"), os.Getenv("DB_USER"), os.Getenv("DB_PWD"), os.Getenv("DB_PORT"), os.Getenv("DB_PARAMS"), 1, 1)
 	if err != nil {
 		return batch.BatchConfig{Logger: logger}, err
 	}
