@@ -43,6 +43,7 @@ require (
 
 require (
 	github.com/gin-gonic/gin v1.9.1
+	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/wI2L/jsondiff v0.5.0

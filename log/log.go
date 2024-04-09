@@ -5,14 +5,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// GetLogger returns a new logger with the specified log level.
-//
-// Parameters:
-// - logLevel: a string representing the log level ("debug", "error", "warn", "fatal")
-//
-// Return type(s):
-// - *zap.Logger: a pointer to the logger
-func GetLogger(logLevel string) *zap.Logger {
+func GetLoggerConfig(logLevel string, stdouts []string, stderrs []string) zap.Config {
 	level := zap.InfoLevel
 	if logLevel == "debug" {
 		level = zap.DebugLevel
@@ -42,16 +35,23 @@ func GetLogger(logLevel string) *zap.Logger {
 		Sampling:          nil,
 		Encoding:          "json",
 		EncoderConfig:     encoderCfg,
-		OutputPaths: []string{
-			"stderr",
-		},
-		ErrorOutputPaths: []string{
-			"stderr",
-		},
-		InitialFields: map[string]interface{}{
-			//			"pid": os.Getpid(),
+		OutputPaths:       stdouts,
+		ErrorOutputPaths:  stderrs,
+		InitialFields:     map[string]interface{}{
+			//"pid": os.Getpid(),
 		},
 	}
 
-	return zap.Must(config.Build())
+	return config
+}
+
+// GetLogger returns a new logger with the specified log level.
+//
+// Parameters:
+// - logLevel: a string representing the log level ("debug", "error", "warn", "fatal")
+//
+// Return type(s):
+// - *zap.Logger: a pointer to the logger
+func GetLogger(logLevel string) *zap.Logger {
+	return zap.Must(GetLoggerConfig(logLevel, []string{"stdout"}, []string{"stderr"}).Build())
 }
