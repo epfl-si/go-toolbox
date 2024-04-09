@@ -1,6 +1,7 @@
 package batch
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/epfl-si/go-toolbox/database"
 	"github.com/gofrs/uuid"
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
 	batch "github.com/epfl-si/go-toolbox/batch/models"
@@ -49,9 +51,28 @@ func InitBatch() (batch.BatchConfig, error) {
 
 	logger := getBatchLogger("info")
 
-	db, err := database.GetGormDB(logger, os.Getenv("DBHOST"), os.Getenv("DBNAME"), os.Getenv("DBUSER"), os.Getenv("DBPASS"), os.Getenv("DBPORT"), os.Getenv("DBPARAMS"), 1, 1)
+	// load env
+	err = godotenv.Load("/home/dinfo/conf/.env")
 	if err != nil {
-		return batch.BatchConfig{}, err
+		logger.Info(fmt.Sprintf("Unable to load /home/dinfo/conf/.env file: %s", err))
+	}
+
+	readFile, err := os.Open("/home/dinfo/conf/.env")
+	if err != nil {
+		fmt.Println(err)
+	}
+	fileScanner := bufio.NewScanner(readFile)
+	fileScanner.Split(bufio.ScanLines)
+
+	for fileScanner.Scan() {
+		// Should check if contains PASS and not display
+		logger.Info(fileScanner.Text())
+	}
+	readFile.Close()
+
+	db, err := database.GetGormDB(logger, os.Getenv("DB_HOST"), os.Getenv("DB_NAME"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_PORT"), os.Getenv("DB_PARAMS"), 1, 1)
+	if err != nil {
+		return batch.BatchConfig{Logger: logger}, err
 	}
 
 	config := batch.BatchConfig{
