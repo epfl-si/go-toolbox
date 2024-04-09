@@ -108,6 +108,14 @@ func SendStatus(config batch.BatchConfig, status string) error {
 	stdoutStr := string(stdout)
 	stderrStr := string(stderr)
 
+	if status == "success" {
+		status = "s"
+	} else if status == "failed" {
+		status = "f"
+	} else {
+		status = "f"
+	}
+
 	batchLog := batch.BatchLog{
 		Id:           config.Uuid,
 		Date:         time.Now(),
@@ -117,8 +125,9 @@ func SendStatus(config batch.BatchConfig, status string) error {
 		Stderr:       stderrStr,
 		StdoutLength: len(stdoutStr),
 		StderrLength: len(stderrStr),
-		Status:       strings.ToUpper(status),
+		Status:       strings.ToLower(status),
 		Path:         config.Path,
+		LastChange:   time.Now(),
 		OutputPath:   "",
 		FilePattern:  "",
 	}

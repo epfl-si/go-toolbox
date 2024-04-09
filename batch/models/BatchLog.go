@@ -13,6 +13,7 @@ type BatchLog struct {
 	StderrLength int       `gorm:"column:stderr_length" json:"stderr_length"`
 	Status       string    `gorm:"column:status" json:"status"`
 	Path         string    `gorm:"column:path" json:"path"`
+	LastChange   time.Time `gorm:"column:last_change" json:"last_change"`
 	OutputPath   string    `gorm:"column:output_path" json:"output_path"`
 	FilePattern  string    `gorm:"column:file_pattern" json:"file_pattern"`
 }
