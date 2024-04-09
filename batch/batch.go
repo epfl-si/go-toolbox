@@ -42,11 +42,15 @@ func InitBatch() (batch.BatchConfig, error) {
 	// get command and args
 	args := os.Args
 
-	ex, err := os.Executable()
+	exFullPath, err := os.Executable()
 	if err != nil {
 		return batch.BatchConfig{}, err
 	}
-	exPath := filepath.Dir(ex)
+	ex := filepath.Base(exFullPath)
+
+	// find first space in args
+	allArgs := strings.Join(args, " ")
+	allArgs = allArgs[strings.Index(allArgs, " ")+1:]
 
 	logger := getBatchLogger("info")
 
@@ -77,11 +81,11 @@ func InitBatch() (batch.BatchConfig, error) {
 	config := batch.BatchConfig{
 		Uuid:        uuidStr,
 		Name:        ex,
-		Args:        strings.Join(args, " "),
+		Args:        allArgs,
 		Stdout:      "",
 		Stderr:      "",
 		Status:      "RUNNING",
-		Path:        exPath,
+		Path:        exFullPath, // /home/dinfo/emails
 		OutputPath:  "",
 		FilePattern: "",
 		Logger:      logger,
