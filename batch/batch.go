@@ -28,7 +28,7 @@ func Log(logger *zap.Logger, priority, message string) {
 	} else if strings.ToUpper(priority) == "ERROR" {
 		logger.Error(message)
 	} else if strings.ToUpper(priority) == "FATAL" {
-		logger.Fatal(message)
+		logger.Error(message) // user .Error, otherwise the process is stopped before we can send the status
 	} else if strings.ToUpper(priority) == "DEBUG" {
 		logger.Debug(message)
 	}
@@ -95,16 +95,10 @@ func InitBatch() (batch.BatchConfig, error) {
 	return config, nil
 }
 
-func SendStatus(config batch.BatchConfig, status string) error {
+func SendStatus(config batch.BatchConfig, status string) {
 	// read stdout from /tmp/stdout file
-	stdout, err := os.ReadFile("/tmp/stdout")
-	if err != nil {
-		return err
-	}
-	stderr, err := os.ReadFile("/tmp/stderr")
-	if err != nil {
-		return err
-	}
+	stdout, _ := os.ReadFile("/tmp/stdout")
+	stderr, _ := os.ReadFile("/tmp/stderr")
 	stdoutStr := string(stdout)
 	stderrStr := string(stderr)
 
@@ -131,10 +125,8 @@ func SendStatus(config batch.BatchConfig, status string) error {
 		OutputPath:   "",
 		FilePattern:  "",
 	}
-	err = config.Db.Save(&batchLog).Error
-	if err != nil {
-		return err
-	}
+	config.Db.Save(&batchLog)
 
-	return nil
+	// stop the process
+	os.Exit(1)
 }
