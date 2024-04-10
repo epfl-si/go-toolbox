@@ -52,7 +52,7 @@ func InitBatch() (batch.BatchConfig, error) {
 	allArgs := strings.Join(args, " ")
 	allArgs = allArgs[strings.Index(allArgs, " ")+1:]
 
-	logger := getBatchLogger("info")
+	logger := getBatchLogger("info", uuidStr)
 
 	// load env
 	err = godotenv.Load("/home/dinfo/conf/.env")
