@@ -16,8 +16,8 @@ import (
 	log "github.com/epfl-si/go-toolbox/log"
 )
 
-func getBatchLogger(logLevel string) *zap.Logger {
-	return zap.Must(log.GetLoggerConfig(logLevel, []string{"stdout", "/tmp/stdout"}, []string{"stderr", "/tmp/stderr"}, "json").Build())
+func getBatchLogger(logLevel, uuid string) *zap.Logger {
+	return zap.Must(log.GetLoggerConfig(logLevel, []string{"stdout", "/tmp/stdout_" + uuid}, []string{"stderr", "/tmp/stderr_" + uuid}, "json").Build())
 }
 
 func Log(logger *zap.Logger, priority, message string) {
@@ -97,8 +97,8 @@ func InitBatch() (batch.BatchConfig, error) {
 
 func SendStatus(config batch.BatchConfig, status string) {
 	// read stdout from /tmp/stdout file
-	stdout, _ := os.ReadFile("/tmp/stdout")
-	stderr, _ := os.ReadFile("/tmp/stderr")
+	stdout, _ := os.ReadFile("/tmp/stdout_" + config.Uuid)
+	stderr, _ := os.ReadFile("/tmp/stderr_" + config.Uuid)
 	stdoutStr := string(stdout)
 	stderrStr := string(stderr)
 
