@@ -50,7 +50,12 @@ func InitBatch() (batch.BatchConfig, error) {
 
 	// find first space in args
 	allArgs := strings.Join(args, " ")
-	allArgs = allArgs[strings.Index(allArgs, " ")+1:]
+	// if some args passed
+	if strings.Contains(allArgs, " ") {
+		allArgs = allArgs[strings.Index(allArgs, " ")+1:]
+	} else {
+		allArgs = ""
+	}
 
 	logger := getBatchLogger("info", uuidStr)
 
@@ -59,19 +64,6 @@ func InitBatch() (batch.BatchConfig, error) {
 	if err != nil {
 		logger.Info(fmt.Sprintf("Unable to load /home/dinfo/conf/.env file: %s", err))
 	}
-
-	//readFile, err := os.Open("/home/dinfo/conf/.env")
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//fileScanner := bufio.NewScanner(readFile)
-	//fileScanner.Split(bufio.ScanLines)
-
-	//for fileScanner.Scan() {
-	//	// Should check if contains PASS and not display
-	//	logger.Info(fileScanner.Text())
-	//}
-	//readFile.Close()
 
 	db, err := database.GetGormDB(logger, os.Getenv("CADI_DB_HOST"), os.Getenv("CADI_DB_NAME"), os.Getenv("CADI_DB_USER"), os.Getenv("CADI_DB_PWD"), os.Getenv("CADI_DB_PORT"), os.Getenv("CADI_DB_PARAMS"), 1, 1)
 	if err != nil {
@@ -125,7 +117,7 @@ func SendStatus(config batch.BatchConfig, status string) {
 		OutputPath:   "",
 		FilePattern:  "",
 	}
-	config.Db.Save(&batchLog)
+	config.Db.Create(&batchLog)
 
 	// stop the process
 	os.Exit(1)
