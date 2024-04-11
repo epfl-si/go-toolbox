@@ -75,17 +75,13 @@ func InitBatch() (batch.BatchConfig, error) {
 	}
 
 	config := batch.BatchConfig{
-		Uuid:        uuidStr,
-		Name:        ex,
-		Args:        allArgs,
-		Stdout:      "",
-		Stderr:      "",
-		Status:      "RUNNING",
-		Path:        exFullPath, // /home/dinfo/emails
-		OutputPath:  "",
-		FilePattern: "",
-		Logger:      logger,
-		Db:          db,
+		Uuid:   uuidStr,
+		Name:   ex,
+		Args:   allArgs,
+		Status: "RUNNING",
+		Path:   exFullPath, // /home/dinfo/emails
+		Logger: logger,
+		Db:     db,
 	}
 
 	return config, nil
@@ -126,8 +122,7 @@ func SendStatus(config batch.BatchConfig, status string) error {
 		Status:       strings.ToLower(status),
 		Path:         config.Path,
 		LastChange:   time.Now(),
-		OutputPath:   "",
-		FilePattern:  "",
+		FilePattern:  config.Name + "_" + config.Uuid,
 	}
 	err := tx.Create(&batchLog).Error
 	if err != nil {
