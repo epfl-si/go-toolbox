@@ -1,6 +1,7 @@
 package batch
 
 import (
+	"compress/gzip"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,6 +16,8 @@ import (
 	batch "github.com/epfl-si/go-toolbox/batch/models"
 	log "github.com/epfl-si/go-toolbox/log"
 )
+
+const maxStdoutSize = 100000
 
 func getBatchLogger(logLevel, uuid string) *zap.Logger {
 	return zap.Must(log.GetLoggerConfig(logLevel, []string{"stdout", "/tmp/stdout_" + uuid}, []string{"stderr", "/tmp/stderr_" + uuid}, "json").Build())
@@ -87,12 +90,18 @@ func InitBatch() (batch.BatchConfig, error) {
 	return config, nil
 }
 
-func SendStatus(config batch.BatchConfig, status string) {
+func SendStatus(config batch.BatchConfig, status string) error {
 	// read stdout from /tmp/stdout file
 	stdout, _ := os.ReadFile("/tmp/stdout_" + config.Uuid)
 	stderr, _ := os.ReadFile("/tmp/stderr_" + config.Uuid)
 	stdoutStr := string(stdout)
 	stderrStr := string(stderr)
+	if len(stdoutStr) > maxStdoutSize {
+		stdoutStr = stdoutStr[:maxStdoutSize]
+	}
+	if len(stderrStr) > maxStdoutSize {
+		stderrStr = stderrStr[:maxStdoutSize]
+	}
 
 	if status == "success" {
 		status = "s"
@@ -101,6 +110,8 @@ func SendStatus(config batch.BatchConfig, status string) {
 	} else {
 		status = "f"
 	}
+
+	tx := config.Db.Begin()
 
 	batchLog := batch.BatchLog{
 		Id:           config.Uuid,
@@ -117,8 +128,48 @@ func SendStatus(config batch.BatchConfig, status string) {
 		OutputPath:   "",
 		FilePattern:  "",
 	}
-	config.Db.Create(&batchLog)
+	err := tx.Create(&batchLog).Error
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// compress files and insert them in DB
+	inputFile, err := os.Open("/tmp/stdout_" + config.Uuid)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer inputFile.Close()
+	// create a new gzip writer
+	gzipWriter, err := os.Create("/tmp/stdout_" + config.Uuid + ".gz")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer gzipWriter.Close()
+	zipWriter := gzip.NewWriter(gzipWriter)
+	defer zipWriter.Close()
+	// now read the file as bytes
+	fileBytes, err := os.ReadFile("/tmp/stdout_" + config.Uuid + ".gz")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	logFile := &batch.BatchLogFile{
+		Name: "/tmp/stdout_" + config.Uuid + ".gz",
+		Data: fileBytes,
+	}
+	err = tx.Create(&logFile).Error
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
 
 	// stop the process
 	os.Exit(1)
+
+	return nil
 }
