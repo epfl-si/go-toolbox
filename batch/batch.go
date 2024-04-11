@@ -131,7 +131,13 @@ func SendStatus(config batch.BatchConfig, status string) error {
 	}
 
 	// process stdout and stderr
-	files := []string{"/tmp/" + config.Name + "_" + config.Uuid + ".out", "/tmp/" + config.Name + "_" + config.Uuid + ".err"}
+	files := []string{}
+	if len(stdoutStr) > 0 {
+		files = append(files, "/tmp/"+config.Name+"_"+config.Uuid+".out")
+	}
+	if len(stderrStr) > 0 {
+		files = append(files, "/tmp/"+config.Name+"_"+config.Uuid+".err")
+	}
 	for _, file := range files {
 		// compress files and insert them in DB
 		inputFile, err := os.Open(file)
@@ -163,7 +169,7 @@ func SendStatus(config batch.BatchConfig, status string) error {
 			return err
 		}
 		logFile := &batch.BatchLogFile{
-			Name: strings.ReplaceAll(file, "/tmp/", "") + ".gz",
+			Name: strings.ReplaceAll(file, "/tmp/", ""),
 			Data: fileBytes,
 		}
 		err = tx.Create(&logFile).Error
