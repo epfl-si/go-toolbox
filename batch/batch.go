@@ -168,7 +168,7 @@ func SendStatus(config batch.BatchConfig, status string) error {
 			return err
 		}
 		logFile := &batch.BatchLogFile{
-			Name: "/tmp/stdout_" + config.Uuid + ".gz",
+			Name: file + ".gz",
 			Data: fileBytes,
 		}
 		err = tx.Create(&logFile).Error
