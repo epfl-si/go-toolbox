@@ -3,6 +3,7 @@ package batch
 import (
 	"compress/gzip"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -134,36 +135,47 @@ func SendStatus(config batch.BatchConfig, status string) error {
 		return err
 	}
 
-	// compress files and insert them in DB
-	inputFile, err := os.Open("/tmp/stdout_" + config.Uuid)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	defer inputFile.Close()
-	// create a new gzip writer
-	gzipWriter, err := os.Create("/tmp/stdout_" + config.Uuid + ".gz")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	defer gzipWriter.Close()
-	zipWriter := gzip.NewWriter(gzipWriter)
-	defer zipWriter.Close()
-	// now read the file as bytes
-	fileBytes, err := os.ReadFile("/tmp/stdout_" + config.Uuid + ".gz")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	logFile := &batch.BatchLogFile{
-		Name: "/tmp/stdout_" + config.Uuid + ".gz",
-		Data: fileBytes,
-	}
-	err = tx.Create(&logFile).Error
-	if err != nil {
-		tx.Rollback()
-		return err
+	// process stdout and stderr
+	files := []string{"/tmp/stdout_" + config.Uuid, "/tmp/stderr_" + config.Uuid}
+	for _, file := range files {
+		// compress files and insert them in DB
+		inputFile, err := os.Open(file)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		defer inputFile.Close()
+		// create a new gzip writer
+		gzipWriter, err := os.Create(file + ".gz")
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		defer gzipWriter.Close()
+		zipWriter := gzip.NewWriter(gzipWriter)
+		defer zipWriter.Close()
+		_, err = io.Copy(zipWriter, inputFile)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		zipWriter.Close()
+
+		// now read the file as bytes
+		fileBytes, err := os.ReadFile(file + ".gz")
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		logFile := &batch.BatchLogFile{
+			Name: "/tmp/stdout_" + config.Uuid + ".gz",
+			Data: fileBytes,
+		}
+		err = tx.Create(&logFile).Error
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	tx.Commit()
