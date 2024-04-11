@@ -20,8 +20,8 @@ import (
 
 const maxStdoutSize = 100000
 
-func getBatchLogger(logLevel, uuid string) *zap.Logger {
-	return zap.Must(log.GetLoggerConfig(logLevel, []string{"stdout", "/tmp/stdout_" + uuid}, []string{"stderr", "/tmp/stderr_" + uuid}, "json").Build())
+func getBatchLogger(logLevel, name, uuid string) *zap.Logger {
+	return zap.Must(log.GetLoggerConfig(logLevel, []string{"stdout", "/tmp/" + name + "_" + uuid + ".out"}, []string{"stderr", "/tmp/" + name + "_" + uuid + ".err"}, "json").Build())
 }
 
 func Log(logger *zap.Logger, priority, message string) {
@@ -61,7 +61,7 @@ func InitBatch() (batch.BatchConfig, error) {
 		allArgs = ""
 	}
 
-	logger := getBatchLogger("info", uuidStr)
+	logger := getBatchLogger("info", ex, uuidStr)
 
 	// load env
 	err = godotenv.Load("/home/dinfo/conf/.env")
@@ -93,8 +93,8 @@ func InitBatch() (batch.BatchConfig, error) {
 
 func SendStatus(config batch.BatchConfig, status string) error {
 	// read stdout from /tmp/stdout file
-	stdout, _ := os.ReadFile("/tmp/stdout_" + config.Uuid)
-	stderr, _ := os.ReadFile("/tmp/stderr_" + config.Uuid)
+	stdout, _ := os.ReadFile("/tmp/" + config.Name + "_" + config.Uuid + ".out")
+	stderr, _ := os.ReadFile("/tmp/" + config.Name + "_" + config.Uuid + ".err")
 	stdoutStr := string(stdout)
 	stderrStr := string(stderr)
 	if len(stdoutStr) > maxStdoutSize {
@@ -136,7 +136,7 @@ func SendStatus(config batch.BatchConfig, status string) error {
 	}
 
 	// process stdout and stderr
-	files := []string{"/tmp/stdout_" + config.Uuid, "/tmp/stderr_" + config.Uuid}
+	files := []string{"/tmp/" + config.Name + "_" + config.Uuid + ".out", "/tmp/" + config.Name + "_" + config.Uuid + ".err"}
 	for _, file := range files {
 		// compress files and insert them in DB
 		inputFile, err := os.Open(file)
@@ -168,7 +168,7 @@ func SendStatus(config batch.BatchConfig, status string) error {
 			return err
 		}
 		logFile := &batch.BatchLogFile{
-			Name: file + ".gz",
+			Name: strings.ReplaceAll(file, "/tmp/", "") + ".gz",
 			Data: fileBytes,
 		}
 		err = tx.Create(&logFile).Error
