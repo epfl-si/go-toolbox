@@ -182,7 +182,7 @@ func SendStatus(config batch.BatchConfig, status string) error {
 	tx.Commit()
 
 	// stop the process
-	os.Exit(1)
+	os.Exit(0)
 
 	return nil
 }
