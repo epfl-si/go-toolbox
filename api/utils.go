@@ -1,11 +1,25 @@
 package api
 
-import api "github.com/epfl-si/go-toolbox/api/models"
+import (
+	"strings"
 
-func MakeError(errorType string, status int, message string, detail string, instance string, help string) *api.Error {
+	api "github.com/epfl-si/go-toolbox/api/models"
+	"github.com/gin-gonic/gin"
+)
+
+func MakeError(c *gin.Context, errorType string, status int, message string, detail string, help string, errors []api.ErrorDetail) *api.Error {
 	if errorType == "" {
 		errorType = GetHttpStatusCategory(status)
 	}
+
+	// "instance" is URL path
+	instance := c.Request.RequestURI
+	// remove first group which contains the API internal name ("/groups-api")
+	idx := strings.Index(instance[1:], "/")
+	if idx != -1 {
+		instance = instance[idx+1:]
+	}
+
 	return &api.Error{
 		Type:     errorType,
 		Title:    message,
@@ -13,6 +27,7 @@ func MakeError(errorType string, status int, message string, detail string, inst
 		Detail:   detail,
 		Instance: instance,
 		Help:     help,
+		Errors:   errors,
 	}
 }
 
