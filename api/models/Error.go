@@ -8,5 +8,5 @@ type Error struct {
 	Detail   string        `json:"detail,omitempty"`
 	Instance string        `json:"instance,omitempty"`
 	Help     string        `json:"help,omitempty"`
-	Errors   []ErrorDetail `json:"errors"`
+	Errors   []ErrorDetail `json:"errors,omitempty"`
 }
