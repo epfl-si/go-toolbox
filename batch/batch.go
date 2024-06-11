@@ -69,6 +69,11 @@ func InitBatch() (batch.BatchConfig, error) {
 		logger.Info(fmt.Sprintf("Unable to load /home/dinfo/conf/.env file: %s", err))
 	}
 
+	// Change logging level according to env file
+	if os.Getenv("LOG_LEVEL") != "" && strings.EqualFold(os.Getenv("LOG_LEVEL"), "info") {
+		logger = getBatchLogger(strings.ToLower(os.Getenv("LOG_LEVEL")), ex, uuidStr)
+	}
+
 	db, err := database.GetGormDB(logger, os.Getenv("CADI_DB_HOST"), os.Getenv("CADI_DB_NAME"), os.Getenv("CADI_DB_USER"), os.Getenv("CADI_DB_PWD"), os.Getenv("CADI_DB_PORT"), os.Getenv("CADI_DB_PARAMS"), 1, 1)
 	if err != nil {
 		return batch.BatchConfig{Logger: logger}, err
