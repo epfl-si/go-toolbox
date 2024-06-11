@@ -84,3 +84,39 @@ func GetUnits(query string) ([]*api.Unit, int64, int, error) {
 
 	return entities.Units, entities.Count, res.StatusCode, nil
 }
+
+type UnitTypesResponse struct {
+	UnitTypes []*api.UnitType `json:"unittypes"`
+}
+
+// GetUnitTypes: retrieves unit types
+//
+// Return type(s):
+// - []*api.UnitType: the matching units
+// - int: response http status code
+// - error: any error encountered
+func GetUnitTypes(query string) ([]*api.UnitType, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/unittypes", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, err
+	}
+
+	resBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// unmarshall response
+	var entities UnitTypesResponse
+	err = json.Unmarshal(resBytes, &entities)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return entities.UnitTypes, res.StatusCode, nil
+}

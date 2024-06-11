@@ -87,3 +87,42 @@ func GetLists(query string, unitId string, listType string, subtype string) ([]*
 
 	return entities.Lists, entities.Count, res.StatusCode, nil
 }
+
+type ListMembersResponse struct {
+	Members []*api.ListMember `json:"members"`
+}
+
+// GetListMembers: get members of a list
+//
+// Parameters:
+// - id string: list ID
+//
+// Return type(s):
+// - []*api.ListMember: the members of the list
+// - int: response http status code
+// - error: any error encountered
+func GetListMembers(id string) ([]*api.ListMember, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists/%s/members", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, err
+	}
+
+	resBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// unmarshall response
+	var entities ListMembersResponse
+	err = json.Unmarshal(resBytes, &entities)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return entities.Members, res.StatusCode, nil
+}

@@ -165,3 +165,38 @@ func GetGroupMembers(groupId string) ([]*api.Member, int, error) {
 
 	return entities.Members, res.StatusCode, nil
 }
+
+// GetGroupAdmins: retrieves admins of a group by its ID or name
+//
+// Parameters:
+// - groupId string: the ID or name of the group to retrieve
+//
+// Return type(s):
+// - []*api.Member: group's admins
+// - int: response http status code
+// - error: any error encountered
+func GetGroupAdmins(groupId string) ([]*api.Member, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/admins", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, err
+	}
+
+	resBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// unmarshall response
+	var entities MembersResponse
+	err = json.Unmarshal(resBytes, &entities)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return entities.Members, res.StatusCode, nil
+}

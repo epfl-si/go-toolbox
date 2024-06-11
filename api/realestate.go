@@ -123,10 +123,10 @@ func GetRooms(query string) ([]*api.Room, int64, int, error) {
 // GetSite: retrieves a building by its ID or name
 //
 // Parameters:
-// - id string: the ID or name of the building to retrieve
+// - id string: the ID or name of the site to retrieve
 //
 // Return type(s):
-// - *api.Site: the building
+// - *api.Site: the site
 // - int: response http status code
 // - error: any error encountered
 func GetSite(id string) (*api.Site, int, error) {
