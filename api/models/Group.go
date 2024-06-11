@@ -12,17 +12,17 @@ type Group struct {
 	Access       string     `json:"access"`
 	Registration string     `json:"registration"`
 	VisibleStr   string     `json:"-"`
-	Visible      int        `json:"visible"`
+	Visible      bool       `json:"visible"`
 	MaillistStr  string     `json:"-"`
-	Maillist     int        `json:"maillist"`
+	Maillist     bool       `json:"maillist"`
 	VisilistStr  string     `json:"-"`
-	Visilist     int        `json:"visilist"`
+	Visilist     bool       `json:"visilist"`
 	ListextStr   string     `json:"-"`
-	Listext      int        `json:"listext"`
+	Listext      bool       `json:"listext"`
 	PublicStr    string     `json:"-"`
-	Public       int        `json:"public"`
+	Public       bool       `json:"public"`
 	LdapStr      string     `json:"-"`
-	Ldap         int        `json:"ldap"`
+	Ldap         bool       `json:"ldap"`
 	Gid          int        `json:"gid"`
 	CreatedAt    *time.Time `json:"createdat"`
 	OpenedBy     string     `json:"-"`
