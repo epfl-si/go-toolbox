@@ -8,7 +8,7 @@ import (
 )
 
 // BindAD connects to an Active Directory server through LDAP protocol
-func BindAD(ldapServer string, ldapPort int, bindUsername, bindPassword, baseDN string) (*ldap.Conn, error) {
+func BindAD(ldapServer string, ldapPort int, bindUsername, bindPassword string) (*ldap.Conn, error) {
 	if ldapServer == "" && os.Getenv("AD_DOMAIN") == "" {
 		return nil, fmt.Errorf("missing AD_DOMAIN environment variable")
 	}
