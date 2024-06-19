@@ -24,14 +24,14 @@ func BindAD(ldapServer string, ldapPort int, bindUsername, bindPassword string) 
 		return nil, fmt.Errorf("missing AD_USER environment variable")
 	}
 	if bindUsername == "" {
-		ldapServer = os.Getenv("AD_USER")
+		bindUsername = os.Getenv("AD_USER")
 	}
 
 	if bindPassword == "" && os.Getenv("AD_PWD") == "" {
 		return nil, fmt.Errorf("missing AD_PWD environment variable")
 	}
 	if bindPassword == "" {
-		ldapServer = os.Getenv("AD_PWD")
+		bindPassword = os.Getenv("AD_PWD")
 	}
 
 	l, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", ldapServer, ldapPort))
