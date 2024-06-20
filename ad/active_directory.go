@@ -1,23 +1,23 @@
 package ad
 
 import (
+	"crypto/tls"
 	"fmt"
 	"os"
 
-	"gopkg.in/ldap.v2"
+	"github.com/go-ldap/ldap/v3"
 )
 
-// BindAD connects to an Active Directory server through LDAP protocol
-func BindAD(ldapServer string, ldapPort int, bindUsername, bindPassword string) (*ldap.Conn, error) {
-	if ldapServer == "" && os.Getenv("AD_DOMAIN") == "" {
-		return nil, fmt.Errorf("missing AD_DOMAIN environment variable")
+/*
+BindAD connects to an Active Directory server through LDAP protocol
+- ldapURL example : "ldaps://exdev.epfl.ch" (with ldaps, port 636 is induced)
+*/
+func BindAD(ldapURL string, bindUsername, bindPassword string) (*ldap.Conn, error) {
+	if ldapURL == "" && os.Getenv("AD_SERVER_URL") == "" {
+		return nil, fmt.Errorf("missing AD_SERVER_URL environment variable")
 	}
-	if ldapServer == "" {
-		ldapServer = os.Getenv("AD_DOMAIN")
-	}
-
-	if ldapPort == 0 && os.Getenv("AD_PORT") == "" {
-		return nil, fmt.Errorf("missing AD_PORT environment variable")
+	if ldapURL == "" {
+		ldapURL = os.Getenv("AD_SERVER_URL")
 	}
 
 	if bindUsername == "" && os.Getenv("AD_USER") == "" {
@@ -34,7 +34,10 @@ func BindAD(ldapServer string, ldapPort int, bindUsername, bindPassword string) 
 		bindPassword = os.Getenv("AD_PWD")
 	}
 
-	l, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", ldapServer, ldapPort))
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	l, err := ldap.DialURL(ldapURL, ldap.DialWithTLSConfig(tlsConfig))
 	if err != nil {
 		return nil, fmt.Errorf("failed to start TLS: %v", err)
 	}
