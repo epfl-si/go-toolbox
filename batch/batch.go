@@ -70,7 +70,7 @@ func InitBatch() (batch.BatchConfig, error) {
 	}
 
 	// Change logging level according to env file
-	if os.Getenv("LOG_LEVEL") != "" && strings.EqualFold(os.Getenv("LOG_LEVEL"), "info") {
+	if os.Getenv("LOG_LEVEL") != "" && !strings.EqualFold(os.Getenv("LOG_LEVEL"), "info") {
 		logger = getBatchLogger(strings.ToLower(os.Getenv("LOG_LEVEL")), ex, uuidStr)
 	}
 
