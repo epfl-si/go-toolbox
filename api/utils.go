@@ -1,6 +1,7 @@
 package api
 
 import (
+	"net/url"
 	"strings"
 
 	api "github.com/epfl-si/go-toolbox/api/models"
@@ -46,4 +47,24 @@ func GetHttpStatusCategory(status int) string {
 	default:
 		return "unknown"
 	}
+}
+
+func LowercaseQueryParameters(c *gin.Context) {
+	// alter query parameters to lowercase
+	// Retrieve query parameters
+	queryParams := c.Request.URL.Query()
+	// Convert query parameters to lower case
+	newQuery := url.Values{}
+	for key, values := range queryParams {
+		lowerCaseKey := strings.ToLower(key)
+		for _, value := range values {
+			lowerCaseValue := strings.ToLower(value)
+			newQuery.Add(lowerCaseKey, lowerCaseValue)
+		}
+	}
+	// Create a new URL with the modified query parameters
+	newURL := *c.Request.URL
+	newURL.RawQuery = newQuery.Encode()
+	// Update the request URL
+	c.Request.URL = &newURL
 }
