@@ -58,8 +58,7 @@ func LowercaseQueryParameters(c *gin.Context) {
 	for key, values := range queryParams {
 		lowerCaseKey := strings.ToLower(key)
 		for _, value := range values {
-			lowerCaseValue := strings.ToLower(value)
-			newQuery.Add(lowerCaseKey, lowerCaseValue)
+			newQuery.Add(lowerCaseKey, value)
 		}
 	}
 	// Create a new URL with the modified query parameters
