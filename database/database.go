@@ -1,9 +1,12 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"time"
+
+	go_ora "github.com/sijms/go-ora/v2"
 
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
@@ -51,6 +54,24 @@ func GetGormDB(log *zap.Logger, host, name, user, pass, port, param string, maxI
 	sqlDB.SetConnMaxIdleTime(2 * time.Minute)
 
 	return db, nil
+}
+
+// GetOracleDB returns an Oracle database connection.
+func GetOracleDB(log *zap.Logger, host, name, user, pass, service string, port int) (*sql.DB, error) {
+	connStr := go_ora.BuildUrl(host, port, service, user, pass, nil)
+	conn, err := sql.Open("oracle", connStr)
+	if err != nil {
+		return nil, err
+	}
+	// check for error
+	err = conn.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info(fmt.Sprintf("GetOracleDB:successfully connected on Oracle host '%s' to database '%s' as user '%s'", host, name, user))
+
+	return conn, nil
 }
 
 func getConnectString(dbHost, dbName, dbUser, dbPassword, dbPort, dbParam string) string {

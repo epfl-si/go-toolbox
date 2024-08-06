@@ -51,6 +51,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/joho/godotenv v1.5.1
+	github.com/sijms/go-ora/v2 v2.8.19
 	github.com/wI2L/jsondiff v0.5.0
 	go.uber.org/multierr v1.11.0 // indirect
 	gorm.io/driver/mysql v1.5.4
