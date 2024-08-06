@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	go_ora "github.com/sijms/go-ora/v2"
@@ -57,8 +58,9 @@ func GetGormDB(log *zap.Logger, host, name, user, pass, port, param string, maxI
 }
 
 // GetOracleDB returns an Oracle database connection.
-func GetOracleDB(log *zap.Logger, host, name, user, pass, service string, port int) (*sql.DB, error) {
-	connStr := go_ora.BuildUrl(host, port, service, user, pass, nil)
+func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) (*sql.DB, error) {
+	iPort, _ := strconv.Atoi(port)
+	connStr := go_ora.BuildUrl(host, iPort, service, user, pass, nil)
 	conn, err := sql.Open("oracle", connStr)
 	if err != nil {
 		return nil, err
