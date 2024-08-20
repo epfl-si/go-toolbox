@@ -1,11 +1,14 @@
 package batch
 
 import (
+	"time"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type BatchConfig struct {
+	StartTime   time.Time
 	Uuid        string
 	Name        string
 	Args        string
