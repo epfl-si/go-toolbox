@@ -5,6 +5,7 @@ type Building struct {
 	Name      string `json:"name"`
 	Label     string `json:"label"`
 	Rule      string `json:"rule"`
+	Site      *Site  `json:"site,omitempty"`
 	SiteId    int    `json:"siteid"`
 	UsualCode string `json:"usualcode"`
 	Station   string `json:"station"`

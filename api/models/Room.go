@@ -8,4 +8,5 @@ type Room struct {
 	StationPost int       `json:"stationpost"`
 	CF4         string    `json:"cf4"`
 	Unit        *Unit     `json:"unit,omitempty"`
+	Floor       string    `json:"floor"`
 }

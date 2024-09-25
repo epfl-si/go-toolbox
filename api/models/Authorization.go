@@ -16,6 +16,7 @@ type Authorization struct {
 	Accred           *Accred    `json:"accred,omitempty"`
 	Value            string     `json:"value"`
 	EndDate          *time.Time `json:"enddate"`
+	State            string     `json:"state"`
 	Status           string     `json:"status"`
 	WorkflowId       int        `json:"workflowid"`
 	LabelFr          string     `json:"labelfr"`
