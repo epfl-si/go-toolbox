@@ -25,4 +25,5 @@ type Person struct {
 	SwitchAAIUser  *SwitchAAIUser `json:"switchaaiuser,omitempty"`
 	Studies        []*ISAEtu      `json:"studies,omitempty"`
 	Status         string         `json:"status"`
+	Nebis          string         `json:"nebis,omitempty"`
 }
