@@ -137,7 +137,7 @@ type MembersResponse struct {
 // - groupId string: the ID or name of the group to retrieve
 //
 // Return type(s):
-// - []*api.Member: group's members
+// - MembersResponse: group's members
 // - int: response http status code
 // - error: any error encountered
 func GetGroupMembers(groupId string) ([]*api.Member, int, error) {
@@ -199,4 +199,40 @@ func GetGroupAdmins(groupId string) ([]*api.Member, int, error) {
 	}
 
 	return entities.Members, res.StatusCode, nil
+}
+
+type MembershipsResponse struct {
+	Memberships map[string][]*api.Group `json:"memberships"`
+}
+
+// GetMemberships: retrieve all memberships
+//
+// Return type(s):
+// - MembershipsResponse: memberships
+// - int: response http status code
+// - error: any error encountered
+func GetMemberships() (map[string][]*api.Group, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/groups/memberships", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, err
+	}
+
+	resBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// unmarshall response
+	var memberships MembershipsResponse
+	err = json.Unmarshal(resBytes, &memberships)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return memberships.Memberships, res.StatusCode, nil
 }

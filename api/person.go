@@ -52,12 +52,14 @@ type PersonsResponse struct {
 // GetPersons retrieves persons.
 //
 // Parameters:
-// - search string: string to search for
-// - restricted bool: only show restricted positions
-// - unitId string: only show available positions for this unit
+// - persIds string: persIds to search for
+// - firstname string: search by firstname
+// - lastname string: search by lastname
+// - unitIds string: search by unitIds
+// - isAccredited bool: only accredited persons
 //
 // Return type(s):
-// - []*api.Position: accred positions
+// - []*api.Person: accred positions
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
