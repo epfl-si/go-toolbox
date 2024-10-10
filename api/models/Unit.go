@@ -43,4 +43,5 @@ type Unit struct {
 	DirectChildren string    `json:"directchildren"`
 	AllChildren    string    `json:"allchildren"`
 	Gid            int       `json:"gid"`
+	Ancestors      []string  `json:"ancestors"`
 }
