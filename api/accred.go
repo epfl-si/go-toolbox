@@ -66,7 +66,7 @@ func GetAccreds(persIds string, unitIds string) ([]*api.Accred, int64, int, erro
 		return nil, 0, 0, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds?persid=%s&unitid=%s", persIds, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds?persid=%s&unitid=%s&alldata=1", persIds, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, 0, err
 	}
