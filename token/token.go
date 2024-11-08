@@ -2,9 +2,13 @@
 package token
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	jwt "github.com/golang-jwt/jwt/v5"
@@ -114,6 +118,41 @@ func PostLoginHandler(log *zap.Logger, auth Authenticater, secret []byte) gin.Ha
 
 		c.JSON(http.StatusOK, gin.H{"access_token": encoded})
 	}
+}
+
+func GetJwtDataFromHeader(authorizationHeader string) map[string]interface{} {
+	rBearerJwt, _ := regexp.Compile(`^Bearer (?:[\w-]*\.){2}[\w-]*$`)
+	if rBearerJwt.MatchString(authorizationHeader) {
+		authorizationHeader = strings.ReplaceAll(authorizationHeader, "Bearer ", "")
+
+		// get middle part and decode base64
+		splits := strings.Split(authorizationHeader, ".")
+		if len(splits) != 3 {
+			return nil
+		}
+		// unmarshal jwtData to json
+		var data map[string]interface{}
+		// decode splits[1] from base64 to json
+		dataPart := splits[1]
+		// pad data part if needed
+		if len(dataPart)%4 != 0 {
+			dataPart += strings.Repeat("=", 4-len(dataPart)%4)
+		}
+		// decode base64 part 2 and convert to JSON
+		jsonData, err := base64.StdEncoding.DecodeString(dataPart)
+		if err != nil {
+			return nil
+		}
+
+		err = json.Unmarshal([]byte(jsonData), &data)
+		if err != nil {
+			return nil
+		}
+
+		return data
+	}
+
+	return nil
 }
 
 // GinMiddleware is the middleware that checks the JWT token
