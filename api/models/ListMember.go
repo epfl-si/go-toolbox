@@ -8,4 +8,6 @@ type ListMember struct {
 	Lastname      string `json:"lastname"`
 	FistnameUsual string `json:"firstnameusual"`
 	LastnameUsual string `json:"lastnameusual"`
+	Display       string `json:"display"`
+	Username      string `json:"username"`
 }
