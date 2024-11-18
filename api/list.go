@@ -89,7 +89,7 @@ func GetLists(query string, unitId string, listType string, subtype string) ([]*
 }
 
 type ListMembersResponse struct {
-	Members []*api.ListMember `json:"members"`
+	Members []*api.Person `json:"members"`
 }
 
 // GetListMembers: get members of a list
@@ -98,10 +98,10 @@ type ListMembersResponse struct {
 // - id string: list ID
 //
 // Return type(s):
-// - []*api.ListMember: the members of the list
+// - []*api.Person: the members of the list
 // - int: response http status code
 // - error: any error encountered
-func GetListMembers(id string) ([]*api.ListMember, int, error) {
+func GetListMembers(id string) ([]*api.Person, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, err
