@@ -38,17 +38,24 @@ func GetGormDB(log *zap.Logger, host, name, user, pass, port, param string, maxI
 	if os.Getenv("LOG_LEVEL") == "info" || os.Getenv("LOG_LEVEL") == "debug" {
 		logLevel = logger.Info
 	}
+	if os.Getenv("LOG_DB_SILENT") == "1" {
+		logLevel = logger.Silent
+	}
 	db, err := gorm.Open(mysql.Open(getConnectString(host, name, user, pass, port, param)), &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {
-		log.Error(fmt.Sprintf("GetGormDB:%s", err))
-		return db, err
+		log.Error(fmt.Sprintf("GetGormDB: %s", err))
+		return nil, err
 	}
 
 	log.Info(fmt.Sprintf("GetGormDB:successfully connected on host '%s' to database '%s' as user '%s' (%s)", host, name, user, param))
 
 	sqlDB, err := db.DB()
+	if err != nil {
+		log.Error(fmt.Sprintf("GetGormDB: %s", err))
+		return nil, err
+	}
 	sqlDB.SetMaxIdleConns(maxIdle)
 	sqlDB.SetMaxOpenConns(maxOpen)
 	sqlDB.SetConnMaxLifetime(time.Hour)
