@@ -12,11 +12,11 @@ type Service struct {
 	UnitId      int        `json:"unitid"`
 	Unit        Unit       `json:"unit"`
 	Description string     `json:"description"`
-	Tequila     string     `json:"tequila"`
-	LDAP        string     `json:"ldap"`
-	AD          string     `json:"ad"`
-	Radius      string     `json:"radius"`
-	SCO         string     `json:"sco"`
+	Tequila     bool       `json:"tequila"`
+	LDAP        bool       `json:"ldap"`
+	AD          bool       `json:"ad"`
+	Radius      bool       `json:"radius"`
+	SCO         bool       `json:"sco"`
 	Uid         int        `json:"uid"`
 	Gid         int        `json:"gid"`
 	Email       string     `json:"email"`
