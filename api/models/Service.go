@@ -21,6 +21,7 @@ type Service struct {
 	Gid         int        `json:"gid"`
 	Email       string     `json:"email"`
 	Lifetime    int        `json:"lifetime"` // value in months
+	CanManage   bool       `json:"canmanage"`
 	CreatedAt   time.Time  `json:"createdat"`
 	RemovedAt   *time.Time `json:"removedat"`
 	RenewedAt   *time.Time `json:"renewedat"`
