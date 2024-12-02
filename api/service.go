@@ -26,19 +26,19 @@ func GetService(serviceId string) (*api.Service, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/services/%s", serviceId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	// unmarshall response
 	var entity api.Service
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	return &entity, res.StatusCode, nil

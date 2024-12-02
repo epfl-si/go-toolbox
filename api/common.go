@@ -44,7 +44,7 @@ func CallApi(verb string, url string, payload string, userId string, password st
 		if err != nil {
 			return nil, fmt.Errorf("error calling %s: ReadAll body: %s", url, err.Error())
 		}
-		return nil, fmt.Errorf("error calling %s: statusCode: %s, body: %s", url, resp.Status, string(resBytes))
+		return nil, fmt.Errorf("error calling %s: statusCode: %d, body: %s", url, resp.StatusCode, string(resBytes))
 	}
 
 	return resp, nil
