@@ -27,19 +27,19 @@ func GetAccred(accredId string) (*api.Accred, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds/%s", accredId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, err
+		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetAccred: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccred: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entity api.Accred
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccred: Unmarshal: %s", err.Error())
 	}
 
 	return &entity, res.StatusCode, nil
@@ -69,19 +69,19 @@ func GetAccreds(persIds string, unitIds string) ([]*api.Accred, int64, int, erro
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds?persid=%s&unitid=%s&alldata=1", persIds, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccreds: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccreds: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities AccredsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccreds: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Accreds, entities.Count, res.StatusCode, nil
@@ -100,19 +100,19 @@ func GetAccreds(persIds string, unitIds string) ([]*api.Accred, int64, int, erro
 func GetAccredsFromUrl(url string) ([]*api.Accred, int64, int, error) {
 	res, err := CallApi("GET", url, "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccredsFromUrl: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccredsFromUrl: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities AccredsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccredsFromUrl: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Accreds, entities.Count, res.StatusCode, nil

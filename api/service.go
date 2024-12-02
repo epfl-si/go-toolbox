@@ -27,19 +27,19 @@ func GetService(serviceId string) (*api.Service, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/services/%s", serviceId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, err
+		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetService: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetService: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entity api.Service
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetService: Unmarshal: %s", err.Error())
 	}
 
 	return &entity, res.StatusCode, nil
@@ -71,19 +71,19 @@ func GetServices(name string, unitIds string, persIds string, network string) ([
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/services?name=%s&unitid=%s&persid=%s&network=%s", name, unitIds, persIds, network), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetServices: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetServices: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities ServicesResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetServices: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Services, entities.Count, res.StatusCode, nil

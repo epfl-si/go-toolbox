@@ -36,19 +36,19 @@ func GetAuthorizations(persIds string, resIds string, authType string, authIds s
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/authorizations?persid=%s&resid=%s&type=%s&authid=%s&alldata=1", persIds, resIds, authType, authIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAuthorizations: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAuthorizations: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities AuthorizationsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAuthorizations: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Authorizations, entities.Count, res.StatusCode, nil
@@ -67,19 +67,19 @@ func GetAuthorizations(persIds string, resIds string, authType string, authIds s
 func GetAuthorizationsFromUrl(url string) ([]*api.Authorization, int64, int, error) {
 	res, err := CallApi("GET", url, "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAuthorizationsFromUrl: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAuthorizationsFromUrl: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities AuthorizationsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAuthorizationsFromUrl: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Authorizations, entities.Count, res.StatusCode, nil

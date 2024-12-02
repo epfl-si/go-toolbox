@@ -27,19 +27,19 @@ func GetRight(idOrName string) (*api.Right, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/rights/%s", idOrName), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetRight: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, res.StatusCode, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetRight: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entity api.Right
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, res.StatusCode, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetRight: Unmarshal: %s", err.Error())
 	}
 
 	return &entity, res.StatusCode, nil
@@ -68,19 +68,19 @@ func GetRights(search string) ([]*api.Right, int64, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/rights?search=%s", search), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetRights: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetRights: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities RightsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetRights: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Rights, entities.Count, res.StatusCode, nil
@@ -103,19 +103,19 @@ func GetRole(idOrName string) (*api.Role, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/roles/%s", idOrName), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, err
+		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetRole: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetRole: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entity api.Role
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetRole: Unmarshal: %s", err.Error())
 	}
 
 	return &entity, res.StatusCode, nil
@@ -144,19 +144,19 @@ func GetRoles(search string) ([]*api.Role, int64, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/roles?search=%s", search), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetRoles: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetRoles: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities RolesResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetRoles: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Roles, entities.Count, res.StatusCode, nil
@@ -179,19 +179,19 @@ func GetStatus(idOrName string) (*api.Status, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/statuses/%s", idOrName), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, err
+		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetStatus: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetStatus: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entity api.Status
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetStatus: Unmarshal: %s", err.Error())
 	}
 
 	return &entity, res.StatusCode, nil
@@ -220,19 +220,19 @@ func GetStatuses(search string) ([]*api.Status, int64, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/statuses?search=%s", search), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetStatuses: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetStatuses: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities StatusesResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetStatuses: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Statuses, entities.Count, res.StatusCode, nil
@@ -255,19 +255,19 @@ func GetProperty(idOrName string) (*api.Property, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/properties/%s", idOrName), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, err
+		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetProperty: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetProperty: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entity api.Property
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetProperty: Unmarshal: %s", err.Error())
 	}
 
 	return &entity, res.StatusCode, nil
@@ -296,19 +296,19 @@ func GetProperties(search string) ([]*api.Property, int64, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/properties?search=%s", search), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetProperties: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetProperties: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities PropertiesResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetProperties: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Properties, entities.Count, res.StatusCode, nil
@@ -331,19 +331,19 @@ func GetPosition(id int) (*api.Position, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/positions/%d", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, err
+		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetPosition: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetPosition: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entity api.Position
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetPosition: Unmarshal: %s", err.Error())
 	}
 
 	return &entity, res.StatusCode, nil
@@ -378,19 +378,19 @@ func GetPositions(search string, restricted bool, unitId int) ([]*api.Position, 
 	}
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/properties?search=%s&restricted=%s&unitid=%d", search, restrictedValue, unitId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetPositions: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetPositions: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities PositionsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetPositions: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Positions, entities.Count, res.StatusCode, nil

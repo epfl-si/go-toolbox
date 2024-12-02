@@ -27,19 +27,19 @@ func GetPerson(persId string) (*api.Person, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons/%s", persId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, err
+		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetPerson: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetPerson: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entity api.Person
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetPerson: Unmarshal: %s", err.Error())
 	}
 
 	return &entity, res.StatusCode, nil
@@ -76,19 +76,19 @@ func GetPersons(persIds string, firstname string, lastname string, unitIds strin
 	}
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons?persid=%s&firstname=%s&lastname=%s&isaccredited=%s&unitid=%s", persIds, firstname, lastname, isAccreditedValue, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetPersons: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetPersons: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities PersonsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetPersons: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Persons, entities.Count, res.StatusCode, nil

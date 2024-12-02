@@ -27,19 +27,19 @@ func GetList(listId string) (*api.List, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists/%s", listId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, err
+		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetList: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetList: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entity api.List
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetList: Unmarshal: %s", err.Error())
 	}
 
 	return &entity, res.StatusCode, nil
@@ -71,19 +71,19 @@ func GetLists(query string, unitId string, listType string, subtype string) ([]*
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists?query=%s&unitid=%s&type=%s&subtype=%s", query, unitId, listType, subtype), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, err
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetLists: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetLists: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities ListsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetLists: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Lists, entities.Count, res.StatusCode, nil
@@ -110,19 +110,19 @@ func GetListMembers(id string) ([]*api.Person, int, error) {
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists/%s/members", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, err
+		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetListMembers: CallApi: %s", err.Error())
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetListMembers: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities ListMembersResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetListMembers: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Members, res.StatusCode, nil
