@@ -37,14 +37,14 @@ func CallApi(verb string, url string, payload string, userId string, password st
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("error calling %s: %s", url, err.Error())
-		return nil, err
+		return resp, err
 	}
 	if resp.StatusCode >= 400 {
 		resBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return nil, fmt.Errorf("error calling %s: ReadAll body: %s", url, err.Error())
+			return resp, fmt.Errorf("error calling %s: ReadAll body: %s", url, err.Error())
 		}
-		return nil, fmt.Errorf("error calling %s: statusCode: %d, body: %s", url, resp.StatusCode, string(resBytes))
+		return resp, fmt.Errorf("error calling %s: statusCode: %d, body: %s", url, resp.StatusCode, string(resBytes))
 	}
 
 	return resp, nil
