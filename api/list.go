@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 
 	api "github.com/epfl-si/go-toolbox/api/models"
@@ -21,24 +22,24 @@ import (
 func GetList(listId string) (*api.List, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists/%s", listId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entity api.List
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	return &entity, res.StatusCode, nil
@@ -65,24 +66,24 @@ type ListsResponse struct {
 func GetLists(query string, unitId string, listType string, subtype string) ([]*api.List, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists?query=%s&unitid=%s&type=%s&subtype=%s", query, unitId, listType, subtype), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entities ListsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	return entities.Lists, entities.Count, res.StatusCode, nil
@@ -104,24 +105,24 @@ type ListMembersResponse struct {
 func GetListMembers(id string) ([]*api.Person, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists/%s/members", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entities ListMembersResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	return entities.Members, res.StatusCode, nil

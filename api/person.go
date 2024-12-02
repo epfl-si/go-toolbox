@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 
 	api "github.com/epfl-si/go-toolbox/api/models"
@@ -21,24 +22,24 @@ import (
 func GetPerson(persId string) (*api.Person, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons/%s", persId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entity api.Person
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	return &entity, res.StatusCode, nil
@@ -66,7 +67,7 @@ type PersonsResponse struct {
 func GetPersons(persIds string, firstname string, lastname string, unitIds string, isAccredited bool) ([]*api.Person, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	isAccreditedValue := "0"
@@ -75,19 +76,19 @@ func GetPersons(persIds string, firstname string, lastname string, unitIds strin
 	}
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons?persid=%s&firstname=%s&lastname=%s&isaccredited=%s&unitid=%s", persIds, firstname, lastname, isAccreditedValue, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entities PersonsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	return entities.Persons, entities.Count, res.StatusCode, nil

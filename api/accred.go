@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 
 	api "github.com/epfl-si/go-toolbox/api/models"
@@ -21,24 +22,24 @@ import (
 func GetAccred(accredId string) (*api.Accred, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds/%s", accredId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entity api.Accred
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	return &entity, res.StatusCode, nil
@@ -63,24 +64,24 @@ type AccredsResponse struct {
 func GetAccreds(persIds string, unitIds string) ([]*api.Accred, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds?persid=%s&unitid=%s&alldata=1", persIds, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entities AccredsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	return entities.Accreds, entities.Count, res.StatusCode, nil
@@ -99,19 +100,19 @@ func GetAccreds(persIds string, unitIds string) ([]*api.Accred, int64, int, erro
 func GetAccredsFromUrl(url string) ([]*api.Accred, int64, int, error) {
 	res, err := CallApi("GET", url, "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entities AccredsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	return entities.Accreds, entities.Count, res.StatusCode, nil

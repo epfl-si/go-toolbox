@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 
 	api "github.com/epfl-si/go-toolbox/api/models"
@@ -21,24 +22,24 @@ import (
 func GetGroup(groupId string) (*api.Group, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entity api.Group
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	return &entity, res.StatusCode, nil
@@ -65,24 +66,24 @@ type GroupsResponse struct {
 func GetGroups(name, owner, admin, member string) ([]*api.Group, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups?name=%s&owner=%s&admin=%s&member=%s", name, owner, admin, member), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entities GroupsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	return entities.Groups, entities.Count, res.StatusCode, nil
@@ -104,24 +105,24 @@ type GroupPersonsResponse struct {
 func GetGroupPersons(groupId string) ([]*api.Member, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/persons", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entities GroupPersonsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	return entities.Persons, res.StatusCode, nil
@@ -143,24 +144,24 @@ type MembersResponse struct {
 func GetGroupMembers(groupId string) ([]*api.Member, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/members", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entities MembersResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	return entities.Members, res.StatusCode, nil
@@ -178,24 +179,24 @@ func GetGroupMembers(groupId string) ([]*api.Member, int, error) {
 func GetGroupAdmins(groupId string) ([]*api.Member, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/admins", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entities MembersResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	return entities.Members, res.StatusCode, nil
@@ -214,24 +215,24 @@ type MembershipsResponse struct {
 func GetMemberships() (map[string][]*api.Group, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/groups/memberships", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var memberships MembershipsResponse
 	err = json.Unmarshal(resBytes, &memberships)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	return memberships.Memberships, res.StatusCode, nil

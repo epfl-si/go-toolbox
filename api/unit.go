@@ -21,24 +21,24 @@ import (
 func GetUnit(unitId string) (*api.Unit, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, err
+		http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/units/%s", unitId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entity api.Unit
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	return &entity, res.StatusCode, nil
@@ -62,24 +62,24 @@ type UnitsResponse struct {
 func GetUnits(query string) ([]*api.Unit, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/units?query=%s", query), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entities UnitsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusInternalServerError, err
 	}
 
 	return entities.Units, entities.Count, res.StatusCode, nil
@@ -98,24 +98,24 @@ type UnitTypesResponse struct {
 func GetUnitTypes(query string) ([]*api.UnitType, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/unittypes", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, err
+		return nil, res.StatusCode, err
 	}
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	// unmarshall response
 	var entities UnitTypesResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	return entities.UnitTypes, res.StatusCode, nil
