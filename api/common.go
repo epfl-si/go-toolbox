@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,7 +19,8 @@ func CallApi(verb string, url string, payload string, userId string, password st
 	}
 
 	transport := &http.Transport{
-		ForceAttemptHTTP2: false, // Disable HTTP/2
+		ForceAttemptHTTP2: false,                                                  // Disable HTTP/2
+		TLSNextProto:      map[string]func(string, *tls.Conn) http.RoundTripper{}, // Disable HTTP/2 upgrades
 	}
 
 	//fmt.Printf("--------- call %s:%s\n", verb, url)
