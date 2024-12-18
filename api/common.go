@@ -2,13 +2,13 @@ package api
 
 import (
 	"bytes"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 
 	"github.com/epfl-si/go-toolbox/log"
+	"golang.org/x/net/http2"
 )
 
 // CallApi calls the API with the specified HTTP verb, URL, payload, user ID, and password.
@@ -20,9 +20,11 @@ func CallApi(verb string, url string, payload string, userId string, password st
 	}
 
 	//fmt.Printf("--------- call %s:%s\n", verb, url)
-	customTransport := http.DefaultTransport.(*http.Transport).Clone()
-	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{Transport: customTransport}
+	client := &http.Client{}
+
+	// Create an HTTP/2 transport and attach it to the client
+	http2Transport := &http2.Transport{}
+	client.Transport = http2Transport
 
 	bodyReader := bytes.NewReader([]byte(payload))
 	req, err := http.NewRequest(verb, url, bodyReader)
