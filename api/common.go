@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+
+	"github.com/epfl-si/go-toolbox/log"
 )
 
 // CallApi calls the API with the specified HTTP verb, URL, payload, user ID, and password.
@@ -43,7 +45,7 @@ func CallApi(verb string, url string, payload string, userId string, password st
 
 	resBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s", url, err.Error())
+		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response: %s", url, err.Error(), log.PrettyPrintStruct(resp))
 	}
 
 	if resp.StatusCode >= 400 {
