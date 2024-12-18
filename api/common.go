@@ -6,8 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
-
-	"golang.org/x/net/http2"
+	"time"
 )
 
 // CallApi calls the API with the specified HTTP verb, URL, payload, user ID, and password.
@@ -18,12 +17,15 @@ func CallApi(verb string, url string, payload string, userId string, password st
 		return nil, nil, fmt.Errorf("missing API_USERID or API_USERPWD environment variable")
 	}
 
-	//fmt.Printf("--------- call %s:%s\n", verb, url)
-	client := &http.Client{}
+	transport := &http.Transport{
+		ForceAttemptHTTP2: false, // Disable HTTP/2
+	}
 
-	// Create an HTTP/2 transport and attach it to the client
-	http2Transport := &http2.Transport{}
-	client.Transport = http2Transport
+	//fmt.Printf("--------- call %s:%s\n", verb, url)
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   240 * time.Second,
+	}
 
 	bodyReader := bytes.NewReader([]byte(payload))
 	req, err := http.NewRequest(verb, url, bodyReader)
@@ -47,7 +49,7 @@ func CallApi(verb string, url string, payload string, userId string, password st
 
 	resBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Content-Length Header: %s", url, err.Error(), resp.ContentLength, resp.Header.Get("Content-Length"))
+		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"))
 	}
 
 	if resp.StatusCode >= 400 {
