@@ -39,6 +39,8 @@ func CallApi(verb string, url string, payload string, userId string, password st
 		fmt.Printf("error calling %s: %s", url, err.Error())
 		return resp, err
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode >= 400 {
 		resBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
