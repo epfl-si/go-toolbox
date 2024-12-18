@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/epfl-si/go-toolbox/log"
 	"golang.org/x/net/http2"
 )
 
@@ -32,6 +31,7 @@ func CallApi(verb string, url string, payload string, userId string, password st
 		return nil, nil, err
 	}
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept-Encoding", "identity")
 
 	// if credentials defined, pass them
 	if userId != "" {
@@ -47,7 +47,7 @@ func CallApi(verb string, url string, payload string, userId string, password st
 
 	resBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response: %s", url, err.Error(), log.PrettyPrintStruct(resp))
+		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Content-Length Header: %s", url, err.Error(), resp.ContentLength, resp.Header.Get("Content-Length"))
 	}
 
 	if resp.StatusCode >= 400 {
