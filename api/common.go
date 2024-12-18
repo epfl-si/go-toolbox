@@ -49,7 +49,7 @@ func CallApi(verb string, url string, payload string, userId string, password st
 
 	resBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"))
+		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s, HTTP Version: %s (Major: %d, Minor: %d)", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"), resp.Proto, resp.ProtoMajor, resp.ProtoMinor)
 	}
 
 	if resp.StatusCode >= 400 {
