@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 
@@ -25,14 +24,9 @@ func GetAccred(accredId string) (*api.Accred, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds/%s", accredId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds/%s", accredId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetAccred: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccred: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -67,14 +61,9 @@ func GetAccreds(persIds string, unitIds string) ([]*api.Accred, int64, int, erro
 		return nil, 0, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds?persid=%s&unitid=%s&alldata=1", persIds, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds?persid=%s&unitid=%s&alldata=1", persIds, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccreds: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccreds: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -98,14 +87,9 @@ func GetAccreds(persIds string, unitIds string) ([]*api.Accred, int64, int, erro
 // - int: response http status code
 // - error: any error encountered
 func GetAccredsFromUrl(url string) ([]*api.Accred, int64, int, error) {
-	res, err := CallApi("GET", url, "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", url, "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccredsFromUrl: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccredsFromUrl: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response

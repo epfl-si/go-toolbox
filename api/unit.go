@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 
@@ -25,14 +24,9 @@ func GetUnit(unitId string) (*api.Unit, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/units/%s", unitId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/units/%s", unitId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetUnit: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetUnit: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -66,14 +60,9 @@ func GetUnits(query string) ([]*api.Unit, int64, int, error) {
 		return nil, 0, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/units?query=%s", query), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/units?query=%s", query), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetUnits: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetUnits: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -102,14 +91,9 @@ func GetUnitTypes(query string) ([]*api.UnitType, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/unittypes", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/unittypes", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetUnitTypes: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetUnitTypes: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response

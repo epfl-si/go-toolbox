@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 
@@ -25,14 +24,9 @@ func GetGroup(groupId string) (*api.Group, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroup: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetGroup: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -69,14 +63,9 @@ func GetGroups(name, owner, admin, member string) ([]*api.Group, int64, int, err
 		return nil, 0, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups?name=%s&owner=%s&admin=%s&member=%s", name, owner, admin, member), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups?name=%s&owner=%s&admin=%s&member=%s", name, owner, admin, member), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGroups: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetGroups: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -108,14 +97,9 @@ func GetGroupPersons(groupId string) ([]*api.Member, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/persons", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/persons", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupPersons: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetGroupPersons: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -147,14 +131,9 @@ func GetGroupMembers(groupId string) ([]*api.Member, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/members", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/members", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupMembers: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetGroupMembers: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -182,14 +161,9 @@ func GetGroupAdmins(groupId string) ([]*api.Member, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/admins", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/admins", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupAdmins: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetGroupAdmins: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -218,14 +192,9 @@ func GetMemberships() (map[string][]*api.Group, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/groups/memberships", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/groups/memberships", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetMemberships: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetMemberships: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response

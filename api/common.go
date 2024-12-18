@@ -12,9 +12,9 @@ import (
 // CallApi calls the API with the specified HTTP verb, URL, payload, user ID, and password.
 //
 // It returns a pointer to http.Response and an error.
-func CallApi(verb string, url string, payload string, userId string, password string) (*http.Response, error) {
+func CallApi(verb string, url string, payload string, userId string, password string) ([]byte, *http.Response, error) {
 	if os.Getenv("API_USERID") == "" || os.Getenv("API_USERPWD") == "" {
-		return nil, fmt.Errorf("missing API_USERID or API_USERPWD environment variable")
+		return nil, nil, fmt.Errorf("missing API_USERID or API_USERPWD environment variable")
 	}
 
 	//fmt.Printf("--------- call %s:%s\n", verb, url)
@@ -25,7 +25,7 @@ func CallApi(verb string, url string, payload string, userId string, password st
 	bodyReader := bytes.NewReader([]byte(payload))
 	req, err := http.NewRequest(verb, url, bodyReader)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	req.Header.Add("Content-Type", "application/json")
 
@@ -37,19 +37,20 @@ func CallApi(verb string, url string, payload string, userId string, password st
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("error calling %s: %s", url, err.Error())
-		return resp, err
+		return nil, resp, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
-		resBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return resp, fmt.Errorf("error calling %s: ReadAll body: %s", url, err.Error())
-		}
-		return resp, fmt.Errorf("error calling %s: statusCode: %d, body: %s", url, resp.StatusCode, string(resBytes))
+	resBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s", url, err.Error())
 	}
 
-	return resp, nil
+	if resp.StatusCode >= 400 {
+		return resBytes, resp, fmt.Errorf("error calling %s: statusCode: %d, body: %s", url, resp.StatusCode, string(resBytes))
+	}
+
+	return resBytes, resp, nil
 }
 
 // checkEnvironment checks the environment for required variables.

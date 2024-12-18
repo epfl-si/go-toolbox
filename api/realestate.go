@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 
@@ -25,14 +24,9 @@ func GetBuilding(id string) (*api.Building, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/buildings/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/buildings/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetBuilding: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetBuilding: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -60,14 +54,9 @@ func GetRoom(id string) (*api.Room, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/rooms/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/rooms/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetRoom: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetRoom: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -101,14 +90,9 @@ func GetRooms(query string) ([]*api.Room, int64, int, error) {
 		return nil, 0, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/rooms?query=%s", query), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/rooms?query=%s", query), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetRooms: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetRooms: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -136,14 +120,9 @@ func GetSite(id string) (*api.Site, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/sites/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/sites/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetSite: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetSite: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response

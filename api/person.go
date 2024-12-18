@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 
@@ -25,14 +24,9 @@ func GetPerson(persId string) (*api.Person, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons/%s", persId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons/%s", persId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetPerson: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetPerson: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -74,14 +68,9 @@ func GetPersons(persIds string, firstname string, lastname string, unitIds strin
 	if isAccredited {
 		isAccreditedValue = "1"
 	}
-	res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons?persid=%s&firstname=%s&lastname=%s&isaccredited=%s&unitid=%s", persIds, firstname, lastname, isAccreditedValue, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons?persid=%s&firstname=%s&lastname=%s&isaccredited=%s&unitid=%s", persIds, firstname, lastname, isAccreditedValue, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetPersons: CallApi: %s", err.Error())
-	}
-
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetPersons: ReadAll: %s", err.Error())
 	}
 
 	// unmarshall response
