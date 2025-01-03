@@ -55,8 +55,8 @@ func NotifyNew(args map[string]string) error {
 	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{Transport: customTransport}
 
-	if os.Getenv("NOTIFIER_PWD") == "" || os.Getenv("NOTIFIER_URL") == "" || os.Getenv("NOTIFIER_APP") == "" {
-		return errors.New("go-toolbox: NotifyNew: missing NOTIFIER_PWD, NOTIFIER_APP or NOTIFIER_URL environment variable")
+	if os.Getenv("NOTIFIER_USERID") == "" || os.Getenv("NOTIFIER_USERPWD") == "" || os.Getenv("NOTIFIER_URL") == "" || os.Getenv("NOTIFIER_APP") == "" {
+		return errors.New("go-toolbox: NotifyNew: missing NOTIFIER_USERID, NOTIFIER_USERPWD, NOTIFIER_APP or NOTIFIER_URL environment variable")
 	}
 
 	eventType := args["type"]
@@ -95,7 +95,7 @@ func NotifyNew(args map[string]string) error {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
 	// pass credentials
-	req.Header.Set("X-Krakend-Secret", os.Getenv("NOTIFIER_PWD"))
+	req.SetBasicAuth(os.Getenv("NOTIFIER_USERID"), os.Getenv("NOTIFIER_USERPWD"))
 
 	resp, err := client.Do(req)
 	if err != nil {
