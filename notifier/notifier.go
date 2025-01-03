@@ -101,7 +101,7 @@ func NotifyNew(args map[string]string) error {
 	if err != nil {
 		return fmt.Errorf("go-toolbox: NotifyNew: Do failure: %s", err.Error())
 	}
-	if resp.StatusCode != http.StatusAccepted {
+	if resp.StatusCode >= 400 {
 		return fmt.Errorf("go-toolbox: NotifyNew: StatusCode is invalid: %d", resp.StatusCode)
 	}
 
