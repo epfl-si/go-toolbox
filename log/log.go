@@ -2,6 +2,8 @@ package log
 
 import (
 	"encoding/json"
+	"os"
+	"strings"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -61,4 +63,23 @@ func GetLogger(logLevel string) *zap.Logger {
 func PrettyPrintStruct(data any) string {
 	prettyJSON, _ := json.MarshalIndent(data, "", "  ")
 	return string(prettyJSON)
+}
+
+func LogApiMessage(logger *zap.Logger, priority, message string) {
+	if strings.ToUpper(priority) == "INFO" {
+		logger.Info(message,
+			zap.String("event.dataset", os.Getenv("API_NAME")))
+	} else if strings.ToUpper(priority) == "WARN" {
+		logger.Warn(message,
+			zap.String("event.dataset", os.Getenv("API_NAME")))
+	} else if strings.ToUpper(priority) == "ERROR" {
+		logger.Error(message,
+			zap.String("event.dataset", os.Getenv("API_NAME")))
+	} else if strings.ToUpper(priority) == "FATAL" {
+		logger.Error(message,
+			zap.String("event.dataset", os.Getenv("API_NAME")))
+	} else if strings.ToUpper(priority) == "DEBUG" {
+		logger.Debug(message,
+			zap.String("event.dataset", os.Getenv("API_NAME")))
+	}
 }

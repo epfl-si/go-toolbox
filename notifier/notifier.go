@@ -55,22 +55,29 @@ func NotifyNew(args map[string]string) error {
 	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{Transport: customTransport}
 
-	if os.Getenv("NOTIFIER_PWD") == "" || os.Getenv("NOTIFIER_URL") == "" {
-		return errors.New("go-toolbox: NotifyNew: missing NOTIFIER_PWD or NOTIFIER_URL environment variable")
+	if os.Getenv("NOTIFIER_PWD") == "" || os.Getenv("NOTIFIER_URL") == "" || os.Getenv("NOTIFIER_APP") == "" {
+		return errors.New("go-toolbox: NotifyNew: missing NOTIFIER_PWD, NOTIFIER_APP or NOTIFIER_URL environment variable")
 	}
 
 	eventType := args["type"]
 	if eventType == "" {
 		return errors.New("go-toolbox: NotifyNew: missing 'type' argument")
 	}
-	// remove 'type' key from args
+	requester := args["requester"]
+	if eventType == "" {
+		return errors.New("go-toolbox: NotifyNew: missing 'requester' argument")
+	}
+	// remove 'type' and 'requester' keys from args
 	delete(args, "type")
+	delete(args, "requester")
 
 	// build event
 	uuid, _ := uuid.NewV4()
 	event := models.Event{
 		UUID:      fmt.Sprintf("%v", uuid),
 		EventType: eventType,
+		Requester: requester,
+		App:       os.Getenv("NOTIFIER_APP"),
 		Args:      args,
 		Status:    0,
 	}

@@ -1,13 +1,10 @@
 package models
 
 type Event struct {
-	UUID      string            `gorm:"column:uuid;primaryKey" json:"uuid"`
-	EventType string            `gorm:"column:type" json:"type"`
-	Args      map[string]string `gorm:"-" json:"args"`
-	ArgsStr   string            `gorm:"column:args" json:"-"`
-	Status    int               `gorm:"column:status" json:"status"`
-}
-
-func (balise *Event) TableName() string {
-	return "events"
+	UUID      string            `json:"uuid"`
+	EventType string            `json:"type"`
+	Args      map[string]string `json:"args"`
+	Status    int               `json:"status"`
+	Requester string            `json:"author"`
+	App       string            `json:"app"`
 }

@@ -18,11 +18,12 @@ func TestNotifyNew(t *testing.T) {
 
 	// test if config is not provided
 	err := notifier.NotifyNew(args)
-	assert.Equal(t, true, strings.Contains(err.Error(), "missing NOTIFIER_PWD or NOTIFIER_URL environment variable"))
+	assert.Equal(t, true, strings.Contains(err.Error(), "NOTIFIER_PWD, NOTIFIER_APP or NOTIFIER_URL environment variable"))
 
 	// set config
 	os.Setenv("NOTIFIER_URL", "https://notify-dev.epfl.ch")
 	os.Setenv("NOTIFIER_PWD", "secret")
+	os.Setenv("NOTIFIER_APP", "myapp")
 	err = notifier.NotifyNew(args)
 	assert.Equal(t, true, strings.Contains(err.Error(), "StatusCode is invalid: 401"))
 }
