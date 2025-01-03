@@ -5,6 +5,6 @@ type Event struct {
 	EventType string            `json:"type"`
 	Args      map[string]string `json:"args"`
 	Status    int               `json:"status"`
-	Requester string            `json:"author"`
+	Requester string            `json:"requester"`
 	App       string            `json:"app"`
 }
