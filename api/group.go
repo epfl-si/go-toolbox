@@ -47,6 +47,7 @@ type GroupsResponse struct {
 // GetGroups: retrieves groups
 //
 // Parameters:
+// - ids string: comma separated list of group ids to retrieve, cannot mix with other filters
 // - name string: name of a group
 // - owner string: sciper of the owner of a group
 // - admin string: sciper of the admin of a group
@@ -57,13 +58,13 @@ type GroupsResponse struct {
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetGroups(name, owner, admin, member string) ([]*api.Group, int64, int, error) {
+func GetGroups(ids, name, owner, admin, member string) ([]*api.Group, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, err
 	}
 
-	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups?name=%s&owner=%s&admin=%s&member=%s", name, owner, admin, member), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups?ids=%s&name=%s&owner=%s&admin=%s&member=%s", ids, name, owner, admin, member), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGroups: CallApi: %s", err.Error())
 	}

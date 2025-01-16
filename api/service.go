@@ -47,6 +47,7 @@ type ServicesResponse struct {
 // GetServices: retrieves services by name, unitId, persid, network property
 //
 // Parameters:
+// - ids string: comma separated list of service ids to retrieve, cannot mix with other filters
 // - name string: name of the service
 // - unitIds string: ID of unit(s) of the service(s) to retrieve
 // - persIds string: ID of person(s) managing the service(s) to retrieve
@@ -57,13 +58,13 @@ type ServicesResponse struct {
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetServices(name string, unitIds string, persIds string, network string) ([]*api.Service, int64, int, error) {
+func GetServices(ids, name, unitIds, persIds, network string) ([]*api.Service, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, err
 	}
 
-	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/services?name=%s&unitid=%s&persid=%s&network=%s", name, unitIds, persIds, network), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/services?ids=%s&name=%s&unitid=%s&persid=%s&network=%s", ids, name, unitIds, persIds, network), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetServices: CallApi: %s", err.Error())
 	}

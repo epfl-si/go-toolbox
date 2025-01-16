@@ -47,7 +47,7 @@ type PersonsResponse struct {
 // GetPersons retrieves persons.
 //
 // Parameters:
-// - persIds string: persIds to search for
+// - persIds string: comma separated list of person ids to retrieve, cannot mix with other filters
 // - firstname string: search by firstname
 // - lastname string: search by lastname
 // - unitIds string: search by unitIds
@@ -58,7 +58,7 @@ type PersonsResponse struct {
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetPersons(persIds string, firstname string, lastname string, unitIds string, isAccredited bool) ([]*api.Person, int64, int, error) {
+func GetPersons(persIds, firstname, lastname, unitIds string, isAccredited bool) ([]*api.Person, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, err
