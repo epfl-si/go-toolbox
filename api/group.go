@@ -214,3 +214,34 @@ func GetMemberships() (map[string][]*api.Group, int, error) {
 
 	return memberships.Memberships, res.StatusCode, nil
 }
+
+type GroupsPersonsResponse struct {
+	GroupsPersons []*api.Member `json:"groupspersons"`
+}
+
+// GetGroupsPersons: retrieve all persons in groups
+//
+// Return type(s):
+// - GroupsPersonsResponse: persons in groups
+// - int: response http status code
+// - error: any error encountered
+func GetGroupsPersons() ([]*api.Member, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+
+	resBytes, res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/groupspersons", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupsPersons: CallApi: %s", err.Error())
+	}
+
+	// unmarshall response
+	var groupsPersons GroupsPersonsResponse
+	err = json.Unmarshal(resBytes, &groupsPersons)
+	if err != nil {
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetGroupsPersons: Unmarshal: %s", err.Error())
+	}
+
+	return groupsPersons.GroupsPersons, res.StatusCode, nil
+}
