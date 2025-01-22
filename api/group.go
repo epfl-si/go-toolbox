@@ -126,13 +126,20 @@ type MembersResponse struct {
 // - MembersResponse: group's members
 // - int: response http status code
 // - error: any error encountered
-func GetGroupMembers(groupId string) ([]*api.Member, int, error) {
+func GetGroupMembers(groupId string, expand, recursive bool) ([]*api.Member, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/members", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	query := ""
+	if expand {
+		query += "&expand=1"
+	}
+	if recursive {
+		query += "&recursive=1"
+	}
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/members"+query, groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupMembers: CallApi: %s", err.Error())
 	}
