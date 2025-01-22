@@ -216,7 +216,7 @@ func GetMemberships() (map[string][]*api.Group, int, error) {
 }
 
 type GroupsPersonsResponse struct {
-	GroupsPersons []*api.Member `json:"groupspersons"`
+	GroupsPersons map[string][]*api.Member `json:"groupspersons"`
 }
 
 // GetGroupsPersons: retrieve all persons in groups
@@ -225,7 +225,7 @@ type GroupsPersonsResponse struct {
 // - GroupsPersonsResponse: persons in groups
 // - int: response http status code
 // - error: any error encountered
-func GetGroupsPersons() ([]*api.Member, int, error) {
+func GetGroupsPersons() (map[string][]*api.Member, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
