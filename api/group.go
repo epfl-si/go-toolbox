@@ -132,7 +132,7 @@ func GetGroupMembers(groupId string, expand, recursive bool) ([]*api.Member, int
 		return nil, http.StatusInternalServerError, err
 	}
 
-	query := ""
+	query := "?1=1"
 	if expand {
 		query += "&expand=1"
 	}
