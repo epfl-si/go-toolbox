@@ -84,7 +84,7 @@ func NotifyNew(args map[string]string) error {
 		return fmt.Errorf("go-toolbox: NotifyNew: Marshall failure: %s", err.Error())
 	}
 
-	resBytes, res, err := api.CallApi("POST", os.Getenv("NOTIFIER_URL"), string(marshalledEvent), os.Getenv("NOTIFIER_USERID"), os.Getenv("NOTIFIER_USERID"))
+	resBytes, res, err := api.CallApi("POST", os.Getenv("NOTIFIER_URL"), string(marshalledEvent), os.Getenv("NOTIFIER_USERID"), os.Getenv("NOTIFIER_USERPWD"))
 	if err != nil {
 		return fmt.Errorf("go-toolbox: NotifyNew: CallApi failure: %s", err.Error())
 	}
