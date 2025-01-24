@@ -35,6 +35,7 @@ func CallApi(verb string, url string, payload string, userId string, password st
 		return nil, nil, err
 	}
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
 	req.Header.Add("Accept-Encoding", "identity")
 
 	// if credentials defined, pass them

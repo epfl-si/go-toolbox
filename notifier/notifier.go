@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/epfl-si/go-toolbox/api"
 	"github.com/epfl-si/go-toolbox/notifier/models"
 	"github.com/gofrs/uuid"
 )
@@ -51,10 +52,6 @@ func Notify(args map[string]string) error {
 }
 
 func NotifyNew(args map[string]string) error {
-	customTransport := http.DefaultTransport.(*http.Transport).Clone()
-	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{Transport: customTransport}
-
 	if os.Getenv("NOTIFIER_USERID") == "" || os.Getenv("NOTIFIER_USERPWD") == "" || os.Getenv("NOTIFIER_URL") == "" || os.Getenv("NOTIFIER_APP") == "" {
 		return errors.New("go-toolbox: NotifyNew: missing NOTIFIER_USERID, NOTIFIER_USERPWD, NOTIFIER_APP or NOTIFIER_URL environment variable")
 	}
@@ -87,22 +84,12 @@ func NotifyNew(args map[string]string) error {
 		return fmt.Errorf("go-toolbox: NotifyNew: Marshall failure: %s", err.Error())
 	}
 
-	//fmt.Printf("--------- %s\n", string(marshalledEvent))
-	req, err := http.NewRequest("POST", os.Getenv("NOTIFIER_URL"), strings.NewReader(string(marshalledEvent)))
+	resBytes, res, err := api.CallApi("POST", os.Getenv("NOTIFIER_URL"), string(marshalledEvent), os.Getenv("NOTIFIER_USERID"), os.Getenv("NOTIFIER_USERID"))
 	if err != nil {
-		return fmt.Errorf("go-toolbox: NotifyNew: NewRequest failure: %s", err.Error())
+		return fmt.Errorf("go-toolbox: NotifyNew: CallApi failure: %s", err.Error())
 	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", "application/json")
-	// pass credentials
-	req.SetBasicAuth(os.Getenv("NOTIFIER_USERID"), os.Getenv("NOTIFIER_USERPWD"))
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("go-toolbox: NotifyNew: Do failure: %s", err.Error())
-	}
-	if resp.StatusCode >= 400 {
-		return fmt.Errorf("go-toolbox: NotifyNew: StatusCode is invalid: %d", resp.StatusCode)
+	if res.StatusCode >= 400 {
+		return fmt.Errorf("go-toolbox: NotifyNew: StatusCode is invalid: %d, response: %s", res.StatusCode, string(resBytes))
 	}
 
 	return nil
