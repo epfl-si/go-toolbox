@@ -57,13 +57,13 @@ type ListsResponse struct {
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetLists(query string, unitId string, listType string, subtype string) ([]*api.List, int64, int, error) {
+func GetLists(ids, query, unitId, listType, subtype string) ([]*api.List, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, err
 	}
 
-	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists?query=%s&unitid=%s&type=%s&subtype=%s", query, unitId, listType, subtype), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists?ids=%s&query=%s&unitid=%s&type=%s&subtype=%s", ids, query, unitId, listType, subtype), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetLists: CallApi: %s", err.Error())
 	}
