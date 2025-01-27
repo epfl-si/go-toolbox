@@ -58,19 +58,30 @@ type PersonsResponse struct {
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetPersons(persIds, firstname, lastname, unitIds string, isAccredited bool) ([]*api.Person, int64, int, error) {
+func GetPersons(ids, firstname, lastname, unitIds string, isAccredited bool) ([]*api.Person, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, err
 	}
 
-	isAccreditedValue := "0"
-	if isAccredited {
-		isAccreditedValue = "1"
-	}
-	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons?persid=%s&firstname=%s&lastname=%s&isaccredited=%s&unitid=%s", persIds, firstname, lastname, isAccreditedValue, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
-	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetPersons: CallApi: %s", err.Error())
+	var resBytes []byte
+	res := &http.Response{}
+
+	// if 'ids' provided, use the POST on /getter instead of the GET endpoint to avoid URL length restrictions
+	if ids != "" {
+		resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/persons/getter", `{"endpoint":"/v1/persons", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+		if err != nil {
+			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetPersons: CallApi: %s", err.Error())
+		}
+	} else {
+		isAccreditedValue := "0"
+		if isAccredited {
+			isAccreditedValue = "1"
+		}
+		resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons?firstname=%s&lastname=%s&isaccredited=%s&unitid=%s", firstname, lastname, isAccreditedValue, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+		if err != nil {
+			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetPersons: CallApi: %s", err.Error())
+		}
 	}
 
 	// unmarshall response

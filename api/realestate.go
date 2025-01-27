@@ -90,9 +90,20 @@ func GetRooms(ids, query string) ([]*api.Room, int64, int, error) {
 		return nil, 0, http.StatusInternalServerError, err
 	}
 
-	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/rooms?ids=%s&query=%s", ids, query), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
-	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetRooms: CallApi: %s", err.Error())
+	var resBytes []byte
+	res := &http.Response{}
+
+	// if 'ids' provided, use the POST on /getter instead of the GET endpoint to avoid URL length restrictions
+	if ids != "" {
+		resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/rooms/getter", `{"endpoint":"/v1/rooms", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+		if err != nil {
+			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetRooms: CallApi: %s", err.Error())
+		}
+	} else {
+		resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/rooms?ids=%s&query=%s", ids, query), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+		if err != nil {
+			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetRooms: CallApi: %s", err.Error())
+		}
 	}
 
 	// unmarshall response
