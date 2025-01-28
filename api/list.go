@@ -57,7 +57,7 @@ type ListsResponse struct {
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetLists(ids, query, unitId, listType, subtype string) ([]*api.List, int64, int, error) {
+func GetLists(query, unitId, listType, subtype string) ([]*api.List, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, err
@@ -66,17 +66,9 @@ func GetLists(ids, query, unitId, listType, subtype string) ([]*api.List, int64,
 	var resBytes []byte
 	res := &http.Response{}
 
-	// if 'ids' provided, use the POST on /getter instead of the GET endpoint to avoid URL length restrictions
-	if ids != "" {
-		resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/lists/getter", `{"endpoint":"/v1/lists", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
-		if err != nil {
-			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetLists: CallApi: %s", err.Error())
-		}
-	} else {
-		resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists?ids=%s&query=%s&unitid=%s&type=%s&subtype=%s", ids, query, unitId, listType, subtype), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
-		if err != nil {
-			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetLists: CallApi: %s", err.Error())
-		}
+	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists?query=%s&unitid=%s&type=%s&subtype=%s", query, unitId, listType, subtype), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetLists: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -84,6 +76,43 @@ func GetLists(ids, query, unitId, listType, subtype string) ([]*api.List, int64,
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetLists: Unmarshal: %s", err.Error())
+	}
+
+	return entities.Lists, entities.Count, res.StatusCode, nil
+}
+
+// GetListsByIds: search lists
+//
+// Parameters:
+// - ids string: comma separated list of list ids to retrieve
+// - unitid string: unit ID of the lists
+// - type string: type of lists (personnel, batiment, roles, droits, classes, etc.)
+// - subtype string: subtype of lists (assistants, enseignants, etc.)
+//
+// Return type(s):
+// - []*api.List: the matching lists
+// - int64: count
+// - int: response http status code
+// - error: any error encountered
+func GetListsByIds(ids string) ([]*api.List, int64, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, err
+	}
+
+	var resBytes []byte
+	res := &http.Response{}
+
+	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/lists/getter", `{"endpoint":"/v1/lists", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetListsByIds: CallApi: %s", err.Error())
+	}
+
+	// unmarshall response
+	var entities ListsResponse
+	err = json.Unmarshal(resBytes, &entities)
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetListsByIds: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Lists, entities.Count, res.StatusCode, nil

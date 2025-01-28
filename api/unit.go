@@ -54,7 +54,7 @@ type UnitsResponse struct {
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetUnits(ids, query string) ([]*api.Unit, int64, int, error) {
+func GetUnits(query string) ([]*api.Unit, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, err
@@ -63,17 +63,9 @@ func GetUnits(ids, query string) ([]*api.Unit, int64, int, error) {
 	var resBytes []byte
 	res := &http.Response{}
 
-	// if 'ids' provided, use the POST on /getter instead of the GET endpoint to avoid URL length restrictions
-	if ids != "" {
-		resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/units/getter", `{"endpoint":"/v1/units", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
-		if err != nil {
-			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetUnits: CallApi: %s", err.Error())
-		}
-	} else {
-		resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/units?ids=%s&query=%s", ids, query), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
-		if err != nil {
-			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetUnits: CallApi: %s", err.Error())
-		}
+	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/units?query=%s", query), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetUnits: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -81,6 +73,40 @@ func GetUnits(ids, query string) ([]*api.Unit, int64, int, error) {
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetUnits: Unmarshal: %s", err.Error())
+	}
+
+	return entities.Units, entities.Count, res.StatusCode, nil
+}
+
+// GetUnitsByIds: retrieves units
+//
+// Parameters:
+// - ids string: comma separated list of unit ids to retrieve
+//
+// Return type(s):
+// - []*api.Unit: the matching units
+// - int64: count
+// - int: response http status code
+// - error: any error encountered
+func GetUnitsByIds(ids string) ([]*api.Unit, int64, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, err
+	}
+
+	var resBytes []byte
+	res := &http.Response{}
+
+	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/units/getter", `{"endpoint":"/v1/units", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetUnitsByIds: CallApi: %s", err.Error())
+	}
+
+	// unmarshall response
+	var entities UnitsResponse
+	err = json.Unmarshal(resBytes, &entities)
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetUnitsByIds: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Units, entities.Count, res.StatusCode, nil

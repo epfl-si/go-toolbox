@@ -84,7 +84,7 @@ type RoomsResponse struct {
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetRooms(ids, query string) ([]*api.Room, int64, int, error) {
+func GetRooms(query string) ([]*api.Room, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, err
@@ -93,17 +93,9 @@ func GetRooms(ids, query string) ([]*api.Room, int64, int, error) {
 	var resBytes []byte
 	res := &http.Response{}
 
-	// if 'ids' provided, use the POST on /getter instead of the GET endpoint to avoid URL length restrictions
-	if ids != "" {
-		resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/rooms/getter", `{"endpoint":"/v1/rooms", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
-		if err != nil {
-			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetRooms: CallApi: %s", err.Error())
-		}
-	} else {
-		resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/rooms?ids=%s&query=%s", ids, query), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
-		if err != nil {
-			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetRooms: CallApi: %s", err.Error())
-		}
+	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/rooms?query=%s", query), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetRooms: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -111,6 +103,40 @@ func GetRooms(ids, query string) ([]*api.Room, int64, int, error) {
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetRooms: Unmarshal: %s", err.Error())
+	}
+
+	return entities.Rooms, entities.Count, res.StatusCode, nil
+}
+
+// GetRoomsByIds: retrieves rooms
+//
+// Parameters:
+// - ids string: comma separated list of room ids to retrieve
+//
+// Return type(s):
+// - []*api.Room: the matching rooms
+// - int64: count
+// - int: response http status code
+// - error: any error encountered
+func GetRoomsByIds(ids string) ([]*api.Room, int64, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, err
+	}
+
+	var resBytes []byte
+	res := &http.Response{}
+
+	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/rooms/getter", `{"endpoint":"/v1/rooms", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetRoomsByIds: CallApi: %s", err.Error())
+	}
+
+	// unmarshall response
+	var entities RoomsResponse
+	err = json.Unmarshal(resBytes, &entities)
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetRoomsByIds: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Rooms, entities.Count, res.StatusCode, nil

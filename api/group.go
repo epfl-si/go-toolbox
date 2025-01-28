@@ -47,7 +47,6 @@ type GroupsResponse struct {
 // GetGroups: retrieves groups
 //
 // Parameters:
-// - ids string: comma separated list of group ids to retrieve, cannot mix with other filters
 // - name string: name of a group
 // - owner string: sciper of the owner of a group
 // - admin string: sciper of the admin of a group
@@ -58,7 +57,7 @@ type GroupsResponse struct {
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetGroups(ids, name, owner, admin, member string) ([]*api.Group, int64, int, error) {
+func GetGroups(name, owner, admin, member string) ([]*api.Group, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, err
@@ -67,17 +66,9 @@ func GetGroups(ids, name, owner, admin, member string) ([]*api.Group, int64, int
 	var resBytes []byte
 	res := &http.Response{}
 
-	// if 'ids' provided, use the POST on /getter instead of the GET endpoint to avoid URL length restrictions
-	if ids != "" {
-		resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/groups/getter", `{"endpoint":"/v1/groups", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
-		if err != nil {
-			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGroups: CallApi: %s", err.Error())
-		}
-	} else {
-		resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups?ids=%s&name=%s&owner=%s&admin=%s&member=%s", ids, name, owner, admin, member), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
-		if err != nil {
-			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGroups: CallApi: %s", err.Error())
-		}
+	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups?name=%s&owner=%s&admin=%s&member=%s", name, owner, admin, member), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGroups: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -85,6 +76,40 @@ func GetGroups(ids, name, owner, admin, member string) ([]*api.Group, int64, int
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetGroups: Unmarshal: %s", err.Error())
+	}
+
+	return entities.Groups, entities.Count, res.StatusCode, nil
+}
+
+// GetGroups: retrieves groups
+//
+// Parameters:
+// - ids string: comma separated list of group ids to retrieve, cannot mix with other filters
+//
+// Return type(s):
+// - []*api.Group: groups
+// - int64: count
+// - int: response http status code
+// - error: any error encountered
+func GetGroupsByIds(ids string) ([]*api.Group, int64, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, err
+	}
+
+	var resBytes []byte
+	res := &http.Response{}
+
+	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/groups/getter", `{"endpoint":"/v1/groups", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupsByIds: CallApi: %s", err.Error())
+	}
+
+	// unmarshall response
+	var entities GroupsResponse
+	err = json.Unmarshal(resBytes, &entities)
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetGroupsByIds: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Groups, entities.Count, res.StatusCode, nil

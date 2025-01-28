@@ -47,7 +47,6 @@ type ServicesResponse struct {
 // GetServices: retrieves services by name, unitId, persid, network property
 //
 // Parameters:
-// - ids string: comma separated list of service ids to retrieve, cannot mix with other filters
 // - name string: name of the service
 // - unitIds string: ID of unit(s) of the service(s) to retrieve
 // - persIds string: ID of person(s) managing the service(s) to retrieve
@@ -58,7 +57,7 @@ type ServicesResponse struct {
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetServices(ids, name, unitIds, persIds, network string) ([]*api.Service, int64, int, error) {
+func GetServices(name, unitIds, persIds, network string) ([]*api.Service, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, err
@@ -67,17 +66,9 @@ func GetServices(ids, name, unitIds, persIds, network string) ([]*api.Service, i
 	var resBytes []byte
 	res := &http.Response{}
 
-	// if 'ids' provided, use the POST on /getter instead of the GET endpoint to avoid URL length restrictions
-	if ids != "" {
-		resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/services/getter", `{"endpoint":"/v1/services", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
-		if err != nil {
-			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetServices: CallApi: %s", err.Error())
-		}
-	} else {
-		resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/services?ids=%s&name=%s&unitid=%s&persid=%s&network=%s", ids, name, unitIds, persIds, network), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
-		if err != nil {
-			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetServices: CallApi: %s", err.Error())
-		}
+	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/services?name=%s&unitid=%s&persid=%s&network=%s", name, unitIds, persIds, network), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetServices: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -85,6 +76,40 @@ func GetServices(ids, name, unitIds, persIds, network string) ([]*api.Service, i
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
 		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetServices: Unmarshal: %s", err.Error())
+	}
+
+	return entities.Services, entities.Count, res.StatusCode, nil
+}
+
+// GetServicesByIds: retrieves services by name, unitId, persid, network property
+//
+// Parameters:
+// - ids string: comma separated list of service ids to retrieve
+//
+// Return type(s):
+// - []*api.Service: slice of services
+// - int64: count
+// - int: response http status code
+// - error: any error encountered
+func GetServicesByIds(ids string) ([]*api.Service, int64, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, err
+	}
+
+	var resBytes []byte
+	res := &http.Response{}
+
+	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/services/getter", `{"endpoint":"/v1/services", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetServicesByIds: CallApi: %s", err.Error())
+	}
+
+	// unmarshall response
+	var entities ServicesResponse
+	err = json.Unmarshal(resBytes, &entities)
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetServicesByIds: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Services, entities.Count, res.StatusCode, nil
