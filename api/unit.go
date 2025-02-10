@@ -112,6 +112,111 @@ func GetUnitsByIds(ids string) ([]*api.Unit, int64, int, error) {
 	return entities.Units, entities.Count, res.StatusCode, nil
 }
 
+// GetFund: retrieves a fund by its ID
+//
+// Parameters:
+// - id string: the ID of the fund to retrieve
+//
+// Return type(s):
+// - *api.Fund: the fund
+// - int: response http status code
+// - error: any error encountered
+func GetFund(id string) (*api.Fund, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/funds/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetFund: CallApi: %s", err.Error())
+	}
+
+	// unmarshall response
+	var entity api.Fund
+	err = json.Unmarshal(resBytes, &entity)
+	if err != nil {
+		return nil, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetFund: Unmarshal: %s", err.Error())
+	}
+
+	return &entity, res.StatusCode, nil
+}
+
+type FundsResponse struct {
+	Funds []*api.Fund `json:"funds"`
+	Count int64       `json:"count"`
+}
+
+// GetFunds: retrieves funds
+//
+// Parameters:
+// - label string: search string on fund label
+// - unitids: comma separated list of unit IDs
+// - cfs: comma separated list of unit CFs
+//
+// Return type(s):
+// - []*api.Fund: the matching funds
+// - int64: count
+// - int: response http status code
+// - error: any error encountered
+func GetFunds(label, unitIds, cfs string) ([]*api.Fund, int64, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, err
+	}
+
+	var resBytes []byte
+	res := &http.Response{}
+
+	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/funds?label=%s&unitids=%s&cfs=%s", label, unitIds, cfs), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetFunds: CallApi: %s", err.Error())
+	}
+
+	// unmarshall response
+	var entities FundsResponse
+	err = json.Unmarshal(resBytes, &entities)
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetFunds: Unmarshal: %s", err.Error())
+	}
+
+	return entities.Funds, entities.Count, res.StatusCode, nil
+}
+
+// GetFundsByIds: retrieves funds
+//
+// Parameters:
+// - ids string: comma separated list of funds ids to retrieve
+//
+// Return type(s):
+// - []*api.Fund: the matching funds
+// - int64: count
+// - int: response http status code
+// - error: any error encountered
+func GetFundsByIds(ids string) ([]*api.Fund, int64, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, err
+	}
+
+	var resBytes []byte
+	res := &http.Response{}
+
+	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/units/getter", `{"endpoint":"/v1/funds", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetFundsByIds: CallApi: %s", err.Error())
+	}
+
+	// unmarshall response
+	var entities FundsResponse
+	err = json.Unmarshal(resBytes, &entities)
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetFundsByIds: Unmarshal: %s", err.Error())
+	}
+
+	return entities.Funds, entities.Count, res.StatusCode, nil
+}
+
 type UnitTypesResponse struct {
 	UnitTypes []*api.UnitType `json:"unittypes"`
 }
