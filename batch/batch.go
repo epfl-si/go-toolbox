@@ -93,7 +93,7 @@ func InitBatch() (batch.BatchConfig, error) {
 	return config, nil
 }
 
-func SendStatus(config batch.BatchConfig, status string) error {
+func SendStatus(config batch.BatchConfig, status string, exitProcess bool) error {
 	// read stdout from /tmp/stdout file
 	stdout, _ := os.ReadFile("/tmp/" + config.Name + "_" + config.Uuid + ".out")
 	stderr, _ := os.ReadFile("/tmp/" + config.Name + "_" + config.Uuid + ".err")
@@ -187,8 +187,10 @@ func SendStatus(config batch.BatchConfig, status string) error {
 
 	tx.Commit()
 
-	// stop the process
-	os.Exit(0)
+	if exitProcess {
+		// stop the process
+		os.Exit(0)
+	}
 
 	return nil
 }
