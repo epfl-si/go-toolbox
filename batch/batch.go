@@ -93,7 +93,52 @@ func InitBatch() (batch.BatchConfig, error) {
 	return config, nil
 }
 
-func SendStatus(config batch.BatchConfig, status string, exitProcess bool) error {
+func InitBatchWithArgs(name, args string) (batch.BatchConfig, error) {
+	// generate a UUID
+	uuid, _ := uuid.NewV4()
+	uuidStr := fmt.Sprintf("%v", uuid)
+
+	logger := getBatchLogger("info", name, uuidStr)
+
+	// load env
+	err := godotenv.Load("/home/dinfo/conf/.env")
+	if err != nil {
+		logger.Info(fmt.Sprintf("Unable to load /home/dinfo/conf/.env file: %s", err))
+	}
+
+	// Change logging level according to env file
+	if os.Getenv("LOG_LEVEL") != "" && !strings.EqualFold(os.Getenv("LOG_LEVEL"), "info") {
+		logger = getBatchLogger(strings.ToLower(os.Getenv("LOG_LEVEL")), name, uuidStr)
+	}
+
+	db, err := database.GetGormDB(logger, os.Getenv("CADI_DB_HOST"), os.Getenv("CADI_DB_NAME"), os.Getenv("CADI_DB_USER"), os.Getenv("CADI_DB_PWD"), os.Getenv("CADI_DB_PORT"), os.Getenv("CADI_DB_PARAMS"), 1, 1)
+	if err != nil {
+		return batch.BatchConfig{Logger: logger}, err
+	}
+
+	config := batch.BatchConfig{
+		StartTime: time.Now(),
+		Uuid:      uuidStr,
+		Name:      name,
+		Args:      args,
+		Status:    "RUNNING",
+		Path:      "",
+		Logger:    logger,
+		Db:        db,
+	}
+
+	return config, nil
+}
+
+func SendStatus(config batch.BatchConfig, status string) error {
+	return processSendStatus(config, status, true)
+}
+
+func SendStatusNoExit(config batch.BatchConfig, status string) error {
+	return processSendStatus(config, status, false)
+}
+
+func processSendStatus(config batch.BatchConfig, status string, exitProcess bool) error {
 	// read stdout from /tmp/stdout file
 	stdout, _ := os.ReadFile("/tmp/" + config.Name + "_" + config.Uuid + ".out")
 	stderr, _ := os.ReadFile("/tmp/" + config.Name + "_" + config.Uuid + ".err")
