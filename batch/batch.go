@@ -86,6 +86,7 @@ func InitBatch() (batch.BatchConfig, error) {
 		Args:      allArgs,
 		Status:    "RUNNING",
 		Path:      exFullPath, // /home/dinfo/emails
+		Mode:      "legacy",
 		Logger:    logger,
 		Db:        db,
 	}
@@ -93,7 +94,7 @@ func InitBatch() (batch.BatchConfig, error) {
 	return config, nil
 }
 
-func InitBatchWithArgs(name, path, args string) (batch.BatchConfig, error) {
+func InitBatchWithArgs(mode, name, path, args string) (batch.BatchConfig, error) {
 	// generate a UUID
 	uuid, _ := uuid.NewV4()
 	uuidStr := fmt.Sprintf("%v", uuid)
@@ -123,6 +124,7 @@ func InitBatchWithArgs(name, path, args string) (batch.BatchConfig, error) {
 		Args:      args,
 		Status:    "RUNNING",
 		Path:      path,
+		Mode:      mode,
 		Logger:    logger,
 		Db:        db,
 	}
@@ -174,6 +176,7 @@ func processSendStatus(config batch.BatchConfig, status string, exitProcess bool
 		Path:         config.Path,
 		LastChange:   time.Now(),
 		FilePattern:  config.Name + "_" + config.Uuid,
+		Mode:         config.Mode,
 	}
 	err := tx.Create(&batchLog).Error
 	if err != nil {

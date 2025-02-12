@@ -18,6 +18,7 @@ type BatchConfig struct {
 	Path        string
 	OutputPath  string
 	FilePattern string
+	Mode        string
 	Logger      *zap.Logger
 	Db          *gorm.DB
 }
