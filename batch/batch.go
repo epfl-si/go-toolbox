@@ -93,7 +93,7 @@ func InitBatch() (batch.BatchConfig, error) {
 	return config, nil
 }
 
-func InitBatchWithArgs(name, args string) (batch.BatchConfig, error) {
+func InitBatchWithArgs(name, path, args string) (batch.BatchConfig, error) {
 	// generate a UUID
 	uuid, _ := uuid.NewV4()
 	uuidStr := fmt.Sprintf("%v", uuid)
@@ -122,7 +122,7 @@ func InitBatchWithArgs(name, args string) (batch.BatchConfig, error) {
 		Name:      name,
 		Args:      args,
 		Status:    "RUNNING",
-		Path:      "",
+		Path:      path,
 		Logger:    logger,
 		Db:        db,
 	}
