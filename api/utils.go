@@ -1,10 +1,13 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"net/url"
 	"strings"
 
 	api "github.com/epfl-si/go-toolbox/api/models"
+	"github.com/epfl-si/go-toolbox/messages"
 	"github.com/gin-gonic/gin"
 )
 
@@ -66,4 +69,42 @@ func LowercaseQueryParameters(c *gin.Context) {
 	newURL.RawQuery = newQuery.Encode()
 	// Update the request URL
 	c.Request.URL = &newURL
+}
+
+func GetContext(c *gin.Context) (api.Context, error) {
+	lang, _ := c.Get("lang")
+	langStr := fmt.Sprintf("%s", lang)
+
+	userIdValue, _ := c.Get("userId")
+	userId := fmt.Sprintf("%s", userIdValue)
+	if userId == "" {
+		return api.Context{}, errors.New(messages.GetMessage(langStr, "NoUserId"))
+	}
+
+	userTypeValue, _ := c.Get("userType")
+	userType := fmt.Sprintf("%s", userTypeValue)
+
+	scopesValue, _ := c.Get("scopes")
+	scopes := []string{}
+	if scopesValue != nil {
+		scopes, _ = scopesValue.([]string)
+	}
+
+	isRootValue, exists := c.Get("isRoot")
+	isRoot := false
+	if exists {
+		isRoot = isRootValue.(bool)
+	}
+
+	userIdOverridedValue, _ := c.Get("UserIdOverrided")
+	userIdOverrided := fmt.Sprintf("%s", userIdOverridedValue)
+
+	return api.Context{
+		UserId:          userId,
+		UserType:        userType,
+		Lang:            langStr,
+		Scopes:          scopes,
+		IsRoot:          isRoot,
+		UserIdOverrided: userIdOverrided,
+	}, nil
 }

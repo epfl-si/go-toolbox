@@ -117,7 +117,6 @@ func ContextMiddleware() gin.HandlerFunc {
 			if isRoot {
 				seeAsPattern := regexp.MustCompile(`^\d{6}$`)
 				if seeAs != "" && seeAsPattern.MatchString(seeAs) {
-					c.Set("seeAs", seeAs)
 					c.Set("userId", seeAs)
 					c.Set("userIdOverrided", userId)
 				}
