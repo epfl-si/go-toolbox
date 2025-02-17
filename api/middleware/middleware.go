@@ -7,15 +7,17 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/epfl-si/go-toolbox/api"
+	"github.com/epfl-si/go-toolbox/log"
 	"github.com/epfl-si/go-toolbox/messages"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
-func ContextMiddleware(db *gorm.DB, log *zap.Logger) gin.HandlerFunc {
+func ContextMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		lang := c.Request.Header.Get("Content-Language")
 		if lang == "" {
@@ -125,5 +127,34 @@ func ContextMiddleware(db *gorm.DB, log *zap.Logger) gin.HandlerFunc {
 			c.Next()
 			return
 		}
+	}
+}
+
+func CorsMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		ctx.Writer.Header().Set("Access-Control-Allow-Methods", "*")
+		ctx.Writer.Header().Set("Access-Control-Allow-Headers", "*")
+
+		ctx.Next()
+	}
+}
+
+func LoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Set("uuid", uuid.New())
+		// set start time to "now" in ms
+		ctx.Set("start", time.Now().UnixMilli())
+
+		ctx.Next()
+
+		// set end time to "now" in ms
+		end := time.Now().UnixMilli()
+		start := ctx.GetInt64("start")
+		ctx.Set("processing_time", end-start)
+
+		log.LogApiInfo(logger, ctx, "")
+
+		ctx.Next()
 	}
 }
