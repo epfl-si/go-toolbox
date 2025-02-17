@@ -1,4 +1,4 @@
-package middlewares
+package api
 
 import (
 	"encoding/base64"
