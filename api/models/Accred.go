@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-// Create a model with gorm anotation
 type Accred struct {
 	PersId     int        `json:"persid"`
 	Person     *Person    `json:"person"`

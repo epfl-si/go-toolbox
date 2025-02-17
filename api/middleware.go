@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	api "github.com/epfl-si/go-toolbox/api/models"
 	"github.com/epfl-si/go-toolbox/log"
 	"github.com/epfl-si/go-toolbox/messages"
 	"github.com/gin-gonic/gin"
@@ -123,6 +124,91 @@ func ContextMiddleware() gin.HandlerFunc {
 					c.Set("userIdOverrided", userId)
 				}
 			}
+
+			//------------------------------------------------------------------------------------------
+			// Custom claims
+			//------------------------------------------------------------------------------------------
+			// authorizations: can be either a string or an array of strings, so we need to handle both cases
+			// in any case, format is <auth name>:<space separated resource IDs>
+			authorizations := make(map[string][]string)
+			if data["authorizations"] != nil {
+				switch data["authorizations"].(type) {
+				case string:
+					authorizationsStr := data["authorizations"].(string)
+					splits = strings.Split(authorizationsStr, ":")
+					if len(splits) > 1 {
+						authorizations[splits[0]] = strings.Split(splits[1], " ")
+					}
+				case []any:
+					authorizationsArray := data["authorizations"].([]any)
+					for _, authorization := range authorizationsArray {
+						splits = strings.Split(authorization.(string), ":")
+						if len(splits) > 1 {
+							authorizations[splits[0]] = strings.Split(splits[1], " ")
+						}
+					}
+				default:
+					// do nothing
+				}
+			}
+			c.Set("authorizations", authorizations)
+
+			// accreds: can be either a string or an array of strings, so we need to handle both cases
+			// in any case, format is <unit ID>:<unit name>:<unit path>:<status name>:<class name>
+			// for example: "14290:ISCS-IAM:EPFL VPO-SI ISCS ISCS-IAM:P:E"
+			accreds := []api.ClaimAccred{}
+			if data["accreds"] != nil {
+				switch data["accreds"].(type) {
+				case string:
+					accredsStr := data["accreds"].(string)
+					splits = strings.Split(accredsStr, ":")
+					if len(splits) == 5 {
+						accreds = append(accreds, api.ClaimAccred{
+							UnitId:     splits[0],
+							UnitName:   splits[1],
+							UnitPath:   splits[2],
+							StatusName: splits[3],
+							ClassName:  splits[4],
+						})
+					}
+				case []any:
+					accredsArray := data["accreds"].([]any)
+					for _, authorization := range accredsArray {
+						splits = strings.Split(authorization.(string), ":")
+						if len(splits) == 5 {
+							accreds = append(accreds, api.ClaimAccred{
+								UnitId:     splits[0],
+								UnitName:   splits[1],
+								UnitPath:   splits[2],
+								StatusName: splits[3],
+								ClassName:  splits[4],
+							})
+						}
+					}
+				default:
+					// do nothing
+				}
+			}
+			c.Set("accreds", accreds)
+
+			// cfs: can be either a string or an array of strings, so we need to handle both cases
+			// in any case, format is <cf number>
+			// for example: "1926"
+			cfs := []string{}
+			if data["cfs"] != nil {
+				switch data["cfs"].(type) {
+				case string:
+					cfs = append(cfs, data["cfs"].(string))
+				case []any:
+					cfsArray := data["cfs"].([]any)
+					for _, cf := range cfsArray {
+						cfs = append(cfs, cf.(string))
+					}
+				default:
+					// do nothing
+				}
+			}
+			c.Set("cfs", cfs)
 
 			c.Next()
 			return

@@ -99,6 +99,27 @@ func GetContext(c *gin.Context) (api.Context, error) {
 	userIdOverridedValue, _ := c.Get("UserIdOverrided")
 	userIdOverrided := fmt.Sprintf("%s", userIdOverridedValue)
 
+	// authorizations
+	authorizationsValue, _ := c.Get("authorizations")
+	authorizations := make(map[string][]string)
+	if authorizationsValue != nil {
+		authorizations = authorizationsValue.(map[string][]string)
+	}
+
+	// accreds
+	accredsValue, _ := c.Get("accreds")
+	accreds := []api.ClaimAccred{}
+	if accredsValue != nil {
+		accreds = accredsValue.([]api.ClaimAccred)
+	}
+
+	// cfs
+	cfsValue, _ := c.Get("cfs")
+	cfs := []string{}
+	if cfsValue != nil {
+		cfs = cfsValue.([]string)
+	}
+
 	return api.Context{
 		UserId:          userId,
 		UserType:        userType,
@@ -106,5 +127,8 @@ func GetContext(c *gin.Context) (api.Context, error) {
 		Scopes:          scopes,
 		IsRoot:          isRoot,
 		UserIdOverrided: userIdOverrided,
+		Authorizations:  authorizations,
+		Accreds:         accreds,
+		CFs:             cfs,
 	}, nil
 }
