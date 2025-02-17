@@ -29,6 +29,8 @@ func ContextMiddleware() gin.HandlerFunc {
 		userId := c.GetHeader("X-Krakend-UserId")
 		scopes := strings.Split(c.GetHeader("X-Krakend-Scopes"), ",")
 
+		LowercaseQueryParameters(c)
+
 		// if internal/same namespace call, then pass default system values
 		if userId == "" {
 			userType = "service"
