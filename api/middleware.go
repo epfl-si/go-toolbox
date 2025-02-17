@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/epfl-si/go-toolbox/api"
 	"github.com/epfl-si/go-toolbox/log"
 	"github.com/epfl-si/go-toolbox/messages"
 	"github.com/gin-gonic/gin"
@@ -81,14 +80,14 @@ func ContextMiddleware() gin.HandlerFunc {
 			// decode base64 part 2 and convert to JSON
 			jsonData, err := base64.StdEncoding.DecodeString(dataPart)
 			if err != nil {
-				c.JSON(http.StatusBadRequest, api.MakeError(c, "", http.StatusBadRequest, messages.GetMessage(lang, "UnableToDecodeBase64"), err.Error(), "", nil))
+				c.JSON(http.StatusBadRequest, MakeError(c, "", http.StatusBadRequest, messages.GetMessage(lang, "UnableToDecodeBase64"), err.Error(), "", nil))
 				c.Abort()
 				return
 			}
 
 			err = json.Unmarshal([]byte(jsonData), &data)
 			if err != nil {
-				c.JSON(http.StatusBadRequest, api.MakeError(c, "", http.StatusBadRequest, messages.GetMessage(lang, "UnableToParseToken"), err.Error(), "", nil))
+				c.JSON(http.StatusBadRequest, MakeError(c, "", http.StatusBadRequest, messages.GetMessage(lang, "UnableToParseToken"), err.Error(), "", nil))
 				c.Abort()
 				return
 			}
