@@ -65,7 +65,7 @@ func ContextMiddleware() gin.HandlerFunc {
 			// get middle part and decode base64
 			splits := strings.Split(authorizationHeader, ".")
 			if len(splits) != 3 {
-				c.JSON(http.StatusBadRequest, gin.H{"error": messages.GetMessage(lang, "InvalidTokenFormat")})
+				c.JSON(http.StatusBadRequest, gin.H{"error": messages.GetLocalMessage(lang, "InvalidTokenFormat")})
 				c.Abort()
 				return
 			}
@@ -80,14 +80,14 @@ func ContextMiddleware() gin.HandlerFunc {
 			// decode base64 part 2 and convert to JSON
 			jsonData, err := base64.StdEncoding.DecodeString(dataPart)
 			if err != nil {
-				c.JSON(http.StatusBadRequest, MakeError(c, "", http.StatusBadRequest, messages.GetMessage(lang, "UnableToDecodeBase64"), err.Error(), "", nil))
+				c.JSON(http.StatusBadRequest, MakeError(c, "", http.StatusBadRequest, messages.GetLocalMessage(lang, "UnableToDecodeBase64"), err.Error(), "", nil))
 				c.Abort()
 				return
 			}
 
 			err = json.Unmarshal([]byte(jsonData), &data)
 			if err != nil {
-				c.JSON(http.StatusBadRequest, MakeError(c, "", http.StatusBadRequest, messages.GetMessage(lang, "UnableToParseToken"), err.Error(), "", nil))
+				c.JSON(http.StatusBadRequest, MakeError(c, "", http.StatusBadRequest, messages.GetLocalMessage(lang, "UnableToParseToken"), err.Error(), "", nil))
 				c.Abort()
 				return
 			}
