@@ -37,6 +37,10 @@ func CallApi(verb string, url string, payload string, userId string, password st
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Add("Accept-Encoding", "identity")
+	// cache control
+	if os.Getenv("API_NOCACHE") == "1" {
+		req.Header.Add("Cache-Control", "no-cache")
+	}
 
 	// if credentials defined, pass them
 	if userId != "" {
