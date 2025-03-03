@@ -100,7 +100,7 @@ func GetServicesByIds(ids string) ([]*api.Service, int64, int, error) {
 	var resBytes []byte
 	res := &http.Response{}
 
-	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/services/getter", `{"endpoint":"/v1/services", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/services", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetServicesByIds: CallApi: %s", err.Error())
 	}

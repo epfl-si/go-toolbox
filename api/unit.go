@@ -97,7 +97,7 @@ func GetUnitsByIds(ids string) ([]*api.Unit, int64, int, error) {
 	var resBytes []byte
 	res := &http.Response{}
 
-	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/units/getter", `{"endpoint":"/v1/units", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/units", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetUnitsByIds: CallApi: %s", err.Error())
 	}
@@ -202,7 +202,7 @@ func GetFundsByIds(ids string) ([]*api.Fund, int64, int, error) {
 	var resBytes []byte
 	res := &http.Response{}
 
-	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/units/getter", `{"endpoint":"/v1/funds", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/funds", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetFundsByIds: CallApi: %s", err.Error())
 	}

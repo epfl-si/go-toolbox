@@ -100,7 +100,7 @@ func GetGroupsByIds(ids string) ([]*api.Group, int64, int, error) {
 	var resBytes []byte
 	res := &http.Response{}
 
-	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/groups/getter", `{"endpoint":"/v1/groups", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/groups", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupsByIds: CallApi: %s", err.Error())
 	}

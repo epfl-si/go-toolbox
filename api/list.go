@@ -103,7 +103,7 @@ func GetListsByIds(ids string) ([]*api.List, int64, int, error) {
 	var resBytes []byte
 	res := &http.Response{}
 
-	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/lists/getter", `{"endpoint":"/v1/lists", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/lists", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetListsByIds: CallApi: %s", err.Error())
 	}

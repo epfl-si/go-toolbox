@@ -105,7 +105,7 @@ func GetPersonsByIds(ids string) ([]*api.Person, int64, int, error) {
 	var resBytes []byte
 	res := &http.Response{}
 
-	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/persons/getter", `{"endpoint":"/v1/persons", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/persons", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetPersonsByIds: CallApi: %s", err.Error())
 	}
