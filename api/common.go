@@ -14,10 +14,6 @@ import (
 //
 // It returns a pointer to http.Response and an error.
 func CallApi(verb string, url string, payload string, userId string, password string) ([]byte, *http.Response, error) {
-	if os.Getenv("API_USERID") == "" || os.Getenv("API_USERPWD") == "" {
-		return nil, nil, fmt.Errorf("missing API_USERID or API_USERPWD environment variable")
-	}
-
 	transport := &http.Transport{
 		ForceAttemptHTTP2: false,                                                  // Disable HTTP/2
 		TLSNextProto:      map[string]func(string, *tls.Conn) http.RoundTripper{}, // Disable HTTP/2 upgrades
@@ -72,6 +68,12 @@ func CallApi(verb string, url string, payload string, userId string, password st
 func checkEnvironment() error {
 	if os.Getenv("API_GATEWAY_URL") == "" {
 		return fmt.Errorf("missing API_GATEWAY_URL environment variable, possible values are 'https://api-test.epfl.ch', 'https://api-preprod.epfl.ch', 'https://api.epfl.ch'")
+	}
+	if os.Getenv("API_USERID") == "" {
+		return fmt.Errorf("missing API_USERID environment variable, it must contain an API Gateway user id authorized on the endpoint you're trying to call")
+	}
+	if os.Getenv("API_USERPWD") == "" {
+		return fmt.Errorf("missing API_USERPWD environment variable, it must contain the password of the API_USERID authorized on the endpoint you're trying to call")
 	}
 	return nil
 }
