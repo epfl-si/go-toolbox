@@ -49,7 +49,7 @@ func GetGormDB(log *zap.Logger, host, name, user, pass, port, param string, maxI
 		return nil, err
 	}
 
-	log.Info(fmt.Sprintf("GetGormDB:successfully connected on host '%s' to database '%s' as user '%s' (%s)", host, name, user, param))
+	// log.Info(fmt.Sprintf("GetGormDB:successfully connected on host '%s' to database '%s' as user '%s' (%s)", host, name, user, param))
 
 	sqlDB, err := db.DB()
 	if err != nil {
