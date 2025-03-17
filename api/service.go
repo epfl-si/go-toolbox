@@ -21,7 +21,7 @@ import (
 func GetService(serviceId string) (*api.Service, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/services/%s", serviceId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -60,7 +60,7 @@ type ServicesResponse struct {
 func GetServices(name, unitIds, persIds, network string) ([]*api.Service, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
@@ -94,7 +94,7 @@ func GetServices(name, unitIds, persIds, network string) ([]*api.Service, int64,
 func GetServicesByIds(ids string) ([]*api.Service, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte

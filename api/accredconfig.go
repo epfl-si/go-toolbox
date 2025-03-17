@@ -21,7 +21,7 @@ import (
 func GetRight(idOrName string) (*api.Right, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/rights/%s", idOrName), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -57,7 +57,7 @@ type RightsResponse struct {
 func GetRights(search string) ([]*api.Right, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/rights?search=%s", search), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -87,7 +87,7 @@ func GetRights(search string) ([]*api.Right, int64, int, error) {
 func GetRole(idOrName string) (*api.Role, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/roles/%s", idOrName), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -123,7 +123,7 @@ type RolesResponse struct {
 func GetRoles(search string) ([]*api.Role, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/roles?search=%s", search), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -153,7 +153,7 @@ func GetRoles(search string) ([]*api.Role, int64, int, error) {
 func GetStatus(idOrName string) (*api.Status, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/statuses/%s", idOrName), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -189,7 +189,7 @@ type StatusesResponse struct {
 func GetStatuses(search string) ([]*api.Status, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/statuses?search=%s", search), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -219,7 +219,7 @@ func GetStatuses(search string) ([]*api.Status, int64, int, error) {
 func GetProperty(idOrName string) (*api.Property, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/properties/%s", idOrName), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -255,7 +255,7 @@ type PropertiesResponse struct {
 func GetProperties(search string) ([]*api.Property, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/properties?search=%s", search), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -285,7 +285,7 @@ func GetProperties(search string) ([]*api.Property, int64, int, error) {
 func GetPosition(id int) (*api.Position, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/config/positions/%d", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -323,7 +323,7 @@ type PositionsResponse struct {
 func GetPositions(search string, restricted bool, unitId int) ([]*api.Position, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	restrictedValue := "0"

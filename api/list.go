@@ -21,7 +21,7 @@ import (
 func GetList(listId string) (*api.List, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists/%s", listId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -60,7 +60,7 @@ type ListsResponse struct {
 func GetLists(query, unitId, listType, subtype string) ([]*api.List, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
@@ -97,7 +97,7 @@ func GetLists(query, unitId, listType, subtype string) ([]*api.List, int64, int,
 func GetListsByIds(ids string) ([]*api.List, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
@@ -134,7 +134,7 @@ type ListMembersResponse struct {
 func GetListMembers(id string) ([]*api.Person, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists/%s/members", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))

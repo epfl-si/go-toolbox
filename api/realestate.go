@@ -21,7 +21,7 @@ import (
 func GetBuilding(id string) (*api.Building, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/buildings/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -51,7 +51,7 @@ func GetBuilding(id string) (*api.Building, int, error) {
 func GetRoom(id string) (*api.Room, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/rooms/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -87,7 +87,7 @@ type RoomsResponse struct {
 func GetRooms(query string) ([]*api.Room, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
@@ -121,7 +121,7 @@ func GetRooms(query string) ([]*api.Room, int64, int, error) {
 func GetRoomsByIds(ids string) ([]*api.Room, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
@@ -154,7 +154,7 @@ func GetRoomsByIds(ids string) ([]*api.Room, int64, int, error) {
 func GetSite(id string) (*api.Site, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/sites/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))

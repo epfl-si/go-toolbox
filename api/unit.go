@@ -21,7 +21,7 @@ import (
 func GetUnit(unitId string) (*api.Unit, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/units/%s", unitId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -57,7 +57,7 @@ type UnitsResponse struct {
 func GetUnits(query string) ([]*api.Unit, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
@@ -91,7 +91,7 @@ func GetUnits(query string) ([]*api.Unit, int64, int, error) {
 func GetUnitsByIds(ids string) ([]*api.Unit, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
@@ -124,7 +124,7 @@ func GetUnitsByIds(ids string) ([]*api.Unit, int64, int, error) {
 func GetFund(id string) (*api.Fund, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/funds/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -162,7 +162,7 @@ type FundsResponse struct {
 func GetFunds(label, unitIds, cfs string) ([]*api.Fund, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
@@ -196,7 +196,7 @@ func GetFunds(label, unitIds, cfs string) ([]*api.Fund, int64, int, error) {
 func GetFundsByIds(ids string) ([]*api.Fund, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
@@ -230,7 +230,7 @@ type UnitTypesResponse struct {
 func GetUnitTypes(query string) ([]*api.UnitType, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/unittypes", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))

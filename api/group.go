@@ -21,7 +21,7 @@ import (
 func GetGroup(groupId string) (*api.Group, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -60,7 +60,7 @@ type GroupsResponse struct {
 func GetGroups(name, owner, admin, member string) ([]*api.Group, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
@@ -94,7 +94,7 @@ func GetGroups(name, owner, admin, member string) ([]*api.Group, int64, int, err
 func GetGroupsByIds(ids string) ([]*api.Group, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
@@ -131,7 +131,7 @@ type GroupPersonsResponse struct {
 func GetGroupPersons(groupId string) ([]*api.Member, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/persons", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -165,7 +165,7 @@ type MembersResponse struct {
 func GetGroupMembers(groupId string, expand, recursive bool) ([]*api.Member, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	query := "?1=1"
@@ -202,7 +202,7 @@ func GetGroupMembers(groupId string, expand, recursive bool) ([]*api.Member, int
 func GetGroupAdmins(groupId string) ([]*api.Member, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/admins", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -233,7 +233,7 @@ type MembershipsResponse struct {
 func GetMemberships() (map[string][]*api.Group, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/groups/memberships", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -264,7 +264,7 @@ type GroupsPersonsResponse struct {
 func GetGroupsPersons() (map[string][]*api.Member, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/groupspersons", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))

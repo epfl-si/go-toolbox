@@ -21,7 +21,7 @@ import (
 func GetPerson(persId string) (*api.Person, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons/%s", persId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
@@ -60,7 +60,7 @@ type PersonsResponse struct {
 func GetPersons(query, firstname, lastname, unitIds string, isAccredited bool) ([]*api.Person, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
@@ -99,7 +99,7 @@ func GetPersons(query, firstname, lastname, unitIds string, isAccredited bool) (
 func GetPersonsByIds(ids string) ([]*api.Person, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, err
+		return nil, 0, http.StatusBadRequest, err
 	}
 
 	var resBytes []byte
