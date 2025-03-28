@@ -27,13 +27,18 @@ type AuthorizationsResponse struct {
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetAuthorizations(persIds string, resIds string, authType string, authIds string) ([]*api.Authorization, int64, int, error) {
+func GetAuthorizations(persIds string, resIds string, authType string, authIds string, expand bool) ([]*api.Authorization, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusBadRequest, err
 	}
 
-	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/authorizations?persid=%s&resid=%s&type=%s&authid=%s&alldata=1", persIds, resIds, authType, authIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	params := ""
+	if expand {
+		params = "&expand=1"
+	}
+
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/authorizations?persid=%s&resid=%s&type=%s&authid=%s&alldata=1"+params, persIds, resIds, authType, authIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAuthorizations: CallApi: %s", err.Error())
 	}
