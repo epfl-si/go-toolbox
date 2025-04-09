@@ -2,7 +2,7 @@ package api
 
 type List struct {
 	Address      string   `json:"address"`
-	Id           int      `json:"id"`
+	Id           string   `json:"id"`
 	Type         string   `json:"type"`
 	SubType      string   `json:"subtype"`
 	Unit         string   `json:"unit"`
