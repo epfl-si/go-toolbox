@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/google/uuid"
 )
 
 var logFile = "/logs/OPDo.log"
@@ -15,6 +17,8 @@ func init() {
 	if os.Getenv("OPDO_LOGFILE") != "" {
 		logFile = os.Getenv("OPDO_LOGFILE")
 	}
+	id := uuid.New() // Generates a random UUID (v4)
+	logFile += id.String()
 }
 
 // LogOPDo logs the operation of the user identified by handler_id on the data of the user identified by handled_id in the file /logs/OPDo.log
