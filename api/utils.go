@@ -96,7 +96,7 @@ func GetContext(c *gin.Context) (api.Context, error) {
 		isRoot = isRootValue.(bool)
 	}
 
-	userIdOverridedValue, _ := c.Get("UserIdOverrided")
+	userIdOverridedValue, _ := c.Get("userIdOverrided")
 	userIdOverrided := fmt.Sprintf("%s", userIdOverridedValue)
 
 	// authorizations

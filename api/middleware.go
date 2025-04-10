@@ -122,6 +122,8 @@ func ContextMiddleware() gin.HandlerFunc {
 				if seeAs != "" && seeAsPattern.MatchString(seeAs) {
 					c.Set("userId", seeAs)
 					c.Set("userIdOverrided", userId)
+					// and disable root (we never override a root user, because if we can do it, we're already root)
+					c.Set("isRoot", false)
 				}
 			}
 
