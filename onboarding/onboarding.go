@@ -18,9 +18,7 @@ const (
 )
 
 var AllowedStudentTypes = map[string]bool{
-	STAFF:                     true,
 	STUDENT:                   true,
-	EXTERNAL:                  true,
 	AUDIT:                     true,
 	AUDIT_EDOC:                true,
 	EFC:                       true,
