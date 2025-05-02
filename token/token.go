@@ -139,7 +139,7 @@ func GetJwtDataFromHeader(authorizationHeader string) map[string]interface{} {
 			dataPart += strings.Repeat("=", 4-len(dataPart)%4)
 		}
 		// decode base64 part 2 and convert to JSON
-		jsonData, err := base64.StdEncoding.DecodeString(dataPart)
+		jsonData, err := base64.RawURLEncoding.DecodeString(dataPart)
 		if err != nil {
 			return nil
 		}
