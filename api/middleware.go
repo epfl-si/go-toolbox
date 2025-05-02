@@ -76,10 +76,6 @@ func ContextMiddleware() gin.HandlerFunc {
 			var data map[string]interface{}
 			// decode splits[1] from base64 to json
 			dataPart := splits[1]
-			// pad data part if needed
-			if len(dataPart)%4 != 0 {
-				dataPart += strings.Repeat("=", 4-len(dataPart)%4)
-			}
 			// decode base64 part 2 and convert to JSON
 			jsonData, err := base64.RawURLEncoding.DecodeString(dataPart)
 			if err != nil {
