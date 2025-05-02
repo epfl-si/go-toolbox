@@ -81,7 +81,7 @@ func ContextMiddleware() gin.HandlerFunc {
 				dataPart += strings.Repeat("=", 4-len(dataPart)%4)
 			}
 			// decode base64 part 2 and convert to JSON
-			jsonData, err := base64.StdEncoding.DecodeString(dataPart)
+			jsonData, err := base64.RawURLEncoding.DecodeString(dataPart)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, MakeError(c, "", http.StatusBadRequest, messages.GetLocalMessage(lang, "UnableToDecodeBase64"), err.Error(), "", nil))
 				c.Abort()
