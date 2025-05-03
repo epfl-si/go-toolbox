@@ -119,3 +119,46 @@ func GetPersonsByIds(ids string) ([]*api.Person, int64, int, error) {
 
 	return entities.Persons, entities.Count, res.StatusCode, nil
 }
+
+type HomonymsResponse struct {
+	Homonyms []*api.Homonym `json:"homonyms"`
+	Count    int64          `json:"count"`
+}
+
+// GetHomonyms retrieves homonyms list.
+//
+// Parameters:
+// - firstname string: firstname of homonym (optional)
+// - lastname string: lastname of homonym (optional)
+//
+// Return type(s):
+// - []*api.Homonym: homonyms list
+// - int64: count
+// - int: response http status code
+// - error: any error encountered
+func GetHomonyms(firstname, lastname string) ([]*api.Homonym, int64, int, error) {
+	err := checkEnvironment()
+	if err != nil {
+		return nil, 0, http.StatusBadRequest, err
+	}
+
+	var resBytes []byte
+	res := &http.Response{}
+	suffix := "1=1"
+	if firstname != "" && lastname != "" {
+		suffix = fmt.Sprintf("&firstname=%s&lastname=%s&", firstname, lastname)
+	}
+	resBytes, res, err = CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/homonyms?"+suffix, "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetHomonyms: CallApi: %s", err.Error())
+	}
+
+	// unmarshall response
+	var entities HomonymsResponse
+	err = json.Unmarshal(resBytes, &entities)
+	if err != nil {
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetPersons: Unmarshal: %s", err.Error())
+	}
+
+	return entities.Homonyms, entities.Count, res.StatusCode, nil
+}
