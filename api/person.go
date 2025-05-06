@@ -12,7 +12,7 @@ import (
 // GetPerson: retrieves a person by their ID
 //
 // Parameters:
-// - persId string: the ID or name of the list to retrieve.
+// - persId string: the ID or name of the person to retrieve.
 //
 // Return type(s):
 // - *api.Person: the person
@@ -53,7 +53,7 @@ type PersonsResponse struct {
 // - isAccredited bool: only accredited persons
 //
 // Return type(s):
-// - []*api.Person: accred positions
+// - []*api.Person: persons list
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
@@ -86,13 +86,13 @@ func GetPersons(query, firstname, lastname, unitIds string, isAccredited bool) (
 	return entities.Persons, entities.Count, res.StatusCode, nil
 }
 
-// GetPersonsPost retrieves persons.
+// GetPersonsByIds retrieves persons.
 //
 // Parameters:
 // - ids string: comma separated list of person ids to retrieve
 //
 // Return type(s):
-// - []*api.Person: accred positions
+// - []*api.Person: persons list
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
