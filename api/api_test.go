@@ -25,6 +25,14 @@ func TestGetGuests(t *testing.T) {
 	assert.Equal(t, "Doe John", guests[0].Display)
 }
 
+func TestGetGuestsByIds(t *testing.T) {
+	setEnv()
+
+	guests, _, _, err := api.GetGuestsByIds("G00001")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(guests))
+}
+
 func setEnv() {
 	os.Setenv("API_GATEWAY_URL", "http://localhost:8080")
 	os.Setenv("API_USERID", "M01234")
