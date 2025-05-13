@@ -66,7 +66,7 @@ func GetGroups(name, owner, admin, member string) ([]*api.Group, int64, int, err
 	var resBytes []byte
 	res := &http.Response{}
 
-	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups?name=%s&owner=%s&admin=%s&member=%s", name, owner, admin, member), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups?name=%s&owner=%s&admin=%s&member=%s&pagesize=0", name, owner, admin, member), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGroups: CallApi: %s", err.Error())
 	}
@@ -134,7 +134,7 @@ func GetGroupPersons(groupId string) ([]*api.Member, int, error) {
 		return nil, http.StatusBadRequest, err
 	}
 
-	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/persons", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/persons?pagesize=0", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupPersons: CallApi: %s", err.Error())
 	}
@@ -168,7 +168,7 @@ func GetGroupMembers(groupId string, expand, recursive bool) ([]*api.Member, int
 		return nil, http.StatusBadRequest, err
 	}
 
-	query := "?1=1"
+	query := "?pagesize=0"
 	if expand {
 		query += "&expand=1"
 	}
@@ -205,7 +205,7 @@ func GetGroupAdmins(groupId string) ([]*api.Member, int, error) {
 		return nil, http.StatusBadRequest, err
 	}
 
-	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/admins", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/admins?pagesize=0", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupAdmins: CallApi: %s", err.Error())
 	}
