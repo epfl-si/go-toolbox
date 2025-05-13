@@ -1,0 +1,86 @@
+{
+    "accreds": [
+        {
+            "persid": 268229,
+            "person": {
+                "id": "268229",
+                "sciper": "268229",
+                "firstname": "Olivier",
+                "lastname": "Delobre",
+                "firstnameuc": "OLIVIER",
+                "lastnameuc": "DELOBRE",
+                "firstnameusual": "Olivier",
+                "lastnameusual": "",
+                "display": "Delobre Olivier",
+                "email": "olivier.delobre@epfl.ch",
+                "username": "delobre"
+            },
+            "unitid": 14290,
+            "unit": {
+                "id": 14290,
+                "name": "ISCS-IAM",
+                "labelfr": "Identity and Access Management",
+                "labelen": "Identity and Access Management",
+                "path": "EPFL VPO-SI ISCS ISCS-IAM",
+                "level": 4,
+                "cf": "1926"
+            },
+            "statusid": 1,
+            "classid": 4,
+            "positionid": 1,
+            "duration": "",
+            "creatorid": "000000",
+            "creator": null,
+            "comment": "",
+            "origin": "p",
+            "authorid": "268229",
+            "author": {
+                "id": "268229",
+                "sciper": "268229",
+                "firstname": "Olivier",
+                "lastname": "Delobre",
+                "firstnameuc": "OLIVIER",
+                "lastnameuc": "DELOBRE",
+                "firstnameusual": "Olivier",
+                "lastnameusual": "",
+                "display": "Delobre Olivier"
+            },
+            "manualreval": "n",
+            "order": 1,
+            "state": "active",
+            "startdate": "2025-02-04T00:00:00+01:00",
+            "enddate": null,
+            "revalidatedat": null,
+            "createdat": "2022-09-21T00:40:18+02:00",
+            "status": {
+                "id": 1,
+                "name": "P",
+                "labelfr": "Personnel",
+                "labelen": "Staff",
+                "description": "Personnel",
+                "maillist": "personnel",
+                "classes": null
+            },
+            "class": {
+                "id": 4,
+                "name": "E",
+                "labelfr": "Personnel technique/administratif",
+                "labelen": "Technical/administrative staff",
+                "description": "Personnel technique/administratif",
+                "maillist": "employe",
+                "statusid": 1
+            },
+            "position": {
+                "id": 1,
+                "labelfr": "1er Assistant",
+                "labelen": "1st Assistant",
+                "labelxx": "1ère Assistante",
+                "labelinclusive": "1ère Assistante/1er Assistant",
+                "restricted": "n"
+            },
+            "hint": "Création : Automatique le 21/09/2022\nDernière modification : Delobre Olivier (268229)\nCommentaire : "
+        }
+    ],
+    "count": 1,
+    "hidden": 0
+}
