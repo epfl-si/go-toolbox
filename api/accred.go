@@ -171,7 +171,10 @@ func AccredV0ToAccred(accredV0 *api.AccredV0) *api.Accred {
 		ValidTo:    accredV0.ValidTo,
 		Status:     accredV0.Status,
 		Class:      accredV0.Class,
-		Position: &api.Position{
+	}
+
+	if accredV0.Position != nil {
+		accred.Position = &api.Position{
 			Id:             accredV0.PositionId,
 			LabelFr:        accredV0.Position.LabelFr,
 			LabelEn:        accredV0.Position.LabelEn,
@@ -180,7 +183,7 @@ func AccredV0ToAccred(accredV0 *api.AccredV0) *api.Accred {
 			Restricted:     accredV0.Position.Restricted == "y",
 			ValidFrom:      accredV0.Position.ValidFrom,
 			ValidTo:        accredV0.Position.ValidTo,
-		},
+		}
 	}
 
 	return accred
