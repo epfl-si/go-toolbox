@@ -3,14 +3,17 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
 	api "github.com/epfl-si/go-toolbox/api/models"
 	"github.com/epfl-si/go-toolbox/log"
+
 	"github.com/epfl-si/go-toolbox/messages"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -240,5 +243,22 @@ func LoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		log.LogApiInfo(logger, ctx, "")
 
 		ctx.Next()
+	}
+}
+
+func CustomRecovery(logger *zap.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if r := recover(); r != nil {
+				// Capture the stack trace
+				stackTrace := make([]byte, 4096)
+				stackSize := runtime.Stack(stackTrace, true)
+
+				log.LogApiError(logger, c, fmt.Sprintf("%v", r)+": "+string(stackTrace[:stackSize]))
+				c.JSON(http.StatusInternalServerError, MakeError(c, "", http.StatusInternalServerError, fmt.Sprintf("%v", r), string(stackTrace[:stackSize]), "", nil))
+				c.Abort()
+			}
+		}()
+		c.Next()
 	}
 }
