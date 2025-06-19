@@ -1,7 +1,7 @@
 package database
 
 type PrivateEmail struct {
-	Persid string `gorm:"column:persid"`
+	PersId string `gorm:"column:persid"`
 	Email  string `gorm:"column:email"`
 	Status bool   `gorm:"column:status"`
 	Source string `gorm:"column:source"`
