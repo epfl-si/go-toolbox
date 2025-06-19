@@ -3,7 +3,7 @@ package database
 import "time"
 
 type IsaProfs struct {
-	Persid    string    `gorm:"column:sciper"`
+	PersId    string    `gorm:"column:sciper"`
 	Status    string    `gorm:"column:statut"`
 	StartDate time.Time `gorm:"column:datedeb"`
 	EndDate   time.Time `gorm:"column:datefin"`
