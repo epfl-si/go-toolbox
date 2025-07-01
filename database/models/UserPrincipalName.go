@@ -3,7 +3,7 @@ package database
 import "time"
 
 type UserPrincipalName struct {
-	PersId    string `gorm:"column:persid"`
+	PersId    string `gorm:"column:persid;primaryKey"`
 	UPN       string `gorm:"column:upn"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
