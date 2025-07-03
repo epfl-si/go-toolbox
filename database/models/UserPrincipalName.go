@@ -5,7 +5,9 @@ import "time"
 type UserPrincipalName struct {
 	PersId    string `gorm:"column:persid;primaryKey"`
 	UPN       string `gorm:"column:upn"`
+	SynchroAD bool   `gorm:"column:synchro_AD"`
 	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (balise *UserPrincipalName) TableName() string {
