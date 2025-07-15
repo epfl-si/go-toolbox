@@ -1,7 +1,8 @@
 package api
 
 type Email struct {
-	Id      string `json:"sciper"`
+	PersId  string `json:"persid"`
 	Email   string `json:"email"`
 	Addrphy string `json:"addrphy"`
+	Type    string `json:"type"`
 }
