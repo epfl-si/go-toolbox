@@ -1,7 +1,7 @@
 package api
 
 type Account struct {
-	Id       int    `json:"userid"`
+	Id       string `json:"userid"`
 	Username string `json:"username"`
 	Uid      int    `json:"uid"`
 	Gid      int    `json:"gid"`
