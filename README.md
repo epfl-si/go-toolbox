@@ -2,6 +2,12 @@
 ## Summary
 This a Go module to centralize all common functions and utilities we use in our Go development at IAM team.
 
+## Release
+To create a new release :
+
+```git tag v0.x.y```
+```git push --tags```
+
 ## Packages
 ### api
 API related functions to call API gateway endpoints. Provides a generic function CallApi and specialized functions for specific items (GetPerson, GetAuthorizations, GetAccreds, etc.).
