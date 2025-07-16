@@ -6,6 +6,7 @@ This a Go module to centralize all common functions and utilities we use in our 
 To create a new release :
 
 ```git tag v0.x.y```
+
 ```git push --tags```
 
 ## Packages
