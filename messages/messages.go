@@ -24,6 +24,22 @@ var messages = map[string]map[string]string{
 	},
 }
 
+var bundle *i18n.Bundle
+
+func init() {
+	bundle = i18n.NewBundle(language.French)
+	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
+	// load translation files
+	_, err := bundle.LoadMessageFile("i18n/fr.toml")
+	if err != nil {
+		fmt.Println("Could not load fr.toml file: " + err.Error())
+	}
+	_, err2 := bundle.LoadMessageFile("i18n/en.toml")
+	if err2 != nil {
+		fmt.Println("Could not load en.toml file: " + err.Error())
+	}
+}
+
 // Get an i18nzed message (stored in <lang>.json files in assets folder)
 func GetLocalMessage(lang string, msg string, values ...string) string {
 	localization := messages[msg][lang]
@@ -39,17 +55,6 @@ func GetLocalMessage(lang string, msg string, values ...string) string {
 }
 
 func GetMessage(lang string, msg string, values ...string) string {
-	bundle := i18n.NewBundle(language.French)
-	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-	// load translation files
-	_, err := bundle.LoadMessageFile("i18n/fr.toml")
-	if err != nil {
-		fmt.Println("Could not load fr.toml file: " + err.Error())
-	}
-	_, err2 := bundle.LoadMessageFile("i18n/en.toml")
-	if err2 != nil {
-		fmt.Println("Could not load en.toml file: " + err.Error())
-	}
 
 	localizer := i18n.NewLocalizer(bundle, lang)
 
