@@ -24,6 +24,10 @@ func GetGroup(groupId string) (*api.Group, int, error) {
 		return nil, http.StatusBadRequest, err
 	}
 
+	if groupId == "" {
+		return nil, http.StatusBadRequest, fmt.Errorf("go-toolbox: GetGroup: groupId can't be empty")
+	}
+
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroup: CallApi: %s", err.Error())
