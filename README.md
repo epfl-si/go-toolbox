@@ -5,6 +5,9 @@ This a Go module to centralize all common functions and utilities we use in our 
 ## Release
 To create a new release :
 
+Retrieve highest version:
+```git tag -l --sort=version:refname | tail -1```
+
 ```git tag v0.x.y```
 
 ```git push --tags```
