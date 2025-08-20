@@ -70,13 +70,14 @@ type AccredsV0Response struct {
 // Parameters:
 // - persIds string: the person IDs (scipers separated by a comma)
 // - unitIds string: the unit IDs (unit IDs separated by a comma)
+// - params map[string]string: any other parameter available on /v1/accreds (eg. state=active,inactive)
 //
 // Return type(s):
 // - []*api.Accred: slice of accreditations
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetAccreds(persIds string, unitIds string) ([]*api.Accred, int64, int, error) {
+func GetAccreds(persIds string, unitIds string, params map[string]string) ([]*api.Accred, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusBadRequest, err
@@ -85,12 +86,17 @@ func GetAccreds(persIds string, unitIds string) ([]*api.Accred, int64, int, erro
 	var res *http.Response
 	var resBytes []byte
 
+	otherParams := ""
+	for key, value := range params {
+		otherParams += fmt.Sprintf("&%s=%s", key, value)
+	}
+
 	if os.Getenv("LOCAL_DATA") != "" {
 		res = &http.Response{}
 		res.StatusCode = http.StatusOK
 		resBytes = []byte(os.Getenv("LOCAL_DATA"))
 	} else {
-		resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds?persid=%s&unitid=%s&alldata=1&pagesize=0", persIds, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+		resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds?persid=%s&unitid=%s&alldata=1&pagesize=0%s", persIds, unitIds, otherParams), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 		if err != nil {
 			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccreds: CallApi: %s", err.Error())
 		}

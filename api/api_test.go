@@ -42,7 +42,7 @@ func TestGetAccreds(t *testing.T) {
 	assert.NoError(t, err)
 	os.Setenv("LOCAL_DATA", string(b))
 	// we don't care of the passed param, it's overrided by content of get_accred.json
-	accreds, _, _, err := api.GetAccreds("", "")
+	accreds, _, _, err := api.GetAccreds("", "", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(accreds))
 	assert.Equal(t, 268229, accreds[0].PersId)
@@ -53,7 +53,7 @@ func TestGetAccreds(t *testing.T) {
 	assert.NoError(t, err)
 	os.Setenv("LOCAL_DATA", string(b))
 	// we don't care of the passed param, it's overrided by content of get_accred.json
-	accreds, _, _, err = api.GetAccreds("", "")
+	accreds, _, _, err = api.GetAccreds("", "", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(accreds))
 	assert.Equal(t, 268229, accreds[0].PersId)
