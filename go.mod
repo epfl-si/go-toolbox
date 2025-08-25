@@ -1,8 +1,6 @@
 module github.com/epfl-si/go-toolbox
 
-go 1.23.0
-
-toolchain go1.23.1
+go 1.25
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
@@ -15,6 +13,8 @@ require (
 
 require (
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
+	github.com/MicahParks/jwkset v0.8.0 // indirect
+	github.com/MicahParks/keyfunc/v3 v3.6.1 // indirect
 	github.com/bytedance/sonic v1.11.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
@@ -45,6 +45,7 @@ require (
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/time v0.9.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
