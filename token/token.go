@@ -4,15 +4,11 @@ package token
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"net/http"
 	"regexp"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	jwt "github.com/golang-jwt/jwt/v5"
-	"go.uber.org/zap"
 )
 
 // Authenticater is the interface that wraps the Authenticate method
@@ -21,18 +17,42 @@ type Authenticater interface {
 }
 
 // CustomClaims is the struct that represents the claims of a JWT token in EPFL context
+// Deprecated: Use UnifiedClaims for new implementations
 type CustomClaims struct {
 	Sciper string `json:"sciper"`
 	jwt.RegisteredClaims
 }
 
-// Validate validates the claims of a JWT token
-func (m CustomClaims) Validate() error {
-	if m.Sciper == "" {
-		return errors.New("sciper must be set")
-	}
-	return nil
+// Unit represents an EPFL organizational unit with its hierarchy information
+type Unit struct {
+	ID       string   `json:"id"`       // Unit ID (numeric string)
+	Name     string   `json:"name"`     // Display name
+	CF       string   `json:"cf"`       // Cost center identifier
+	Path     string   `json:"path"`     // Hierarchical path
+	Children []string `json:"children"` // List of child unit IDs
 }
+
+// UnifiedClaims supports both local HMAC and Entra JWKS token formats
+type UnifiedClaims struct {
+	// Core identifiers
+	UniqueID string `json:"uniqueid,omitempty"` // SCIPER (6 digits) or service account (M + 5 digits)
+	Name     string `json:"name,omitempty"`     // Display name
+	Email    string `json:"email,omitempty"`    // Primary email address
+	TenantID string `json:"tid,omitempty"`      // Azure Entra tenant ID
+
+	// Authorization
+	Groups []string `json:"groups,omitempty"` // Group memberships
+	Scopes []string `json:"scopes,omitempty"` // Token scopes
+	Units  []Unit   `json:"units,omitempty"`  // EPFL unit info with hierarchy
+	Roles  []string `json:"roles,omitempty"`  // User roles
+
+	jwt.RegisteredClaims // Standard JWT claims (iss, sub, exp, etc.)
+}
+
+
+
+
+
 
 // Token is the struct that represents a JWT token
 type Token struct {
@@ -49,7 +69,7 @@ func New(claims CustomClaims) *Token {
 // Parse parses a JWT token
 func Parse(tokenString string, secret []byte) (*Token, error) {
 	t, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
+		// Validate the alg is the one expected:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
@@ -94,30 +114,56 @@ func (t *Token) ToJSON() (string, error) {
 	return t.JWT.Raw, nil
 }
 
-// PostLoginHandler is the handler that checks the login and password and returns a JWT token
-func PostLoginHandler(log *zap.Logger, auth Authenticater, secret []byte) gin.HandlerFunc {
-	log.Info("Creating login handler")
-	return func(c *gin.Context) {
-		login := c.PostForm("login")
-		pass := c.PostForm("pass")
 
-		log.Info("Login attempt", zap.String("login", login))
 
-		claims, err := auth.Authenticate(login, pass)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-			return
-		}
 
-		t := New(claims)
-		encoded, err := t.Sign(secret)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
 
-		c.JSON(http.StatusOK, gin.H{"access_token": encoded})
+
+
+
+
+// ToUnifiedClaims converts CustomClaims to UnifiedClaims for backward compatibility
+func (c CustomClaims) ToUnifiedClaims() UnifiedClaims {
+	return UnifiedClaims{
+		UniqueID:         c.Sciper, // Map sciper to uniqueid
+		RegisteredClaims: c.RegisteredClaims,
 	}
+}
+
+// ToCustomClaims converts UnifiedClaims to CustomClaims for backward compatibility
+func (u UnifiedClaims) ToCustomClaims() CustomClaims {
+	return CustomClaims{
+		Sciper:           u.UniqueID, // Map uniqueid back to sciper
+		RegisteredClaims: u.RegisteredClaims,
+	}
+}
+
+// ParseUnified parses a JWT token into UnifiedClaims
+func ParseUnified(tokenString string, secret []byte) (*UnifiedClaims, error) {
+	claims := &UnifiedClaims{}
+	t, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return secret, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !t.Valid {
+		return nil, fmt.Errorf("token is invalid")
+	}
+
+	return claims, nil
+}
+
+// NewUnified creates a new JWT token with UnifiedClaims
+func NewUnified(claims UnifiedClaims) *Token {
+	jwt := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return &Token{JWT: jwt}
 }
 
 func GetJwtDataFromHeader(authorizationHeader string) map[string]interface{} {
@@ -151,34 +197,5 @@ func GetJwtDataFromHeader(authorizationHeader string) map[string]interface{} {
 	return nil
 }
 
-// GinMiddleware is the middleware that checks the JWT token
-func GinMiddleware(secret []byte) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authorizationHeaderString := c.GetHeader("Authorization")
-		if authorizationHeaderString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "No token provided"})
-			c.Abort()
-			return
-		}
 
-		// Check that the authorization header starts with "Bearer"
-		if len(authorizationHeaderString) < 7 || authorizationHeaderString[:7] != "Bearer " {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
-			return
-		}
 
-		// Extract the token from the authorization header
-		tokenString := authorizationHeaderString[7:]
-
-		t, err := Parse(tokenString, secret)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-			c.Abort()
-			return
-		}
-
-		c.Set("token", t)
-		c.Next()
-	}
-}
