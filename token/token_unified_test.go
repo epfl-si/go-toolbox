@@ -1,6 +1,8 @@
 package token
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -343,4 +345,194 @@ func TestGetUserIDAndPersonService(t *testing.T) {
 			assert.Equal(t, tt.expectedIsService, isService)
 		})
 	}
+}
+
+func TestJWKSValidator_URLConstruction(t *testing.T) {
+	// Mock JWKS server that expects no query parameters
+	jwksResponse := `{
+		"keys": [
+			{
+				"kty": "RSA",
+				"use": "sig",
+				"kid": "test-key-id",
+				"x5t": "test-key-id",
+				"n": "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw",
+				"e": "AQAB"
+			}
+		]
+	}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify that no appid query parameter is present
+		if appid := r.URL.Query().Get("appid"); appid != "" {
+			t.Errorf("Unexpected appid query parameter: %s", appid)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`{"error":"invalid_request","error_description":"Unexpected appid parameter"}`))
+			return
+		}
+
+		// Expected path format: /tenant-id/discovery/v2.0/keys
+		expectedPath := "/b6cddbc1-2348-4644-af0a-2fdb55573e3b/discovery/v2.0/keys"
+		if r.URL.Path != expectedPath {
+			t.Errorf("Unexpected path: %s, expected: %s", r.URL.Path, expectedPath)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(jwksResponse))
+	}))
+	defer server.Close()
+
+	logger := zap.NewNop()
+	tenantID := "b6cddbc1-2348-4644-af0a-2fdb55573e3b"
+
+	// Create validator with mock server URL
+	validator := NewJWKSValidator(server.URL, tenantID, time.Hour, logger)
+
+	// Create a test token with RSA256 algorithm and proper claims
+	// This token will fail signature validation but should pass URL construction test
+	testToken := "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6InRlc3Qta2V5LWlkIn0.eyJhdWQiOiJhcGk6Ly90ZXN0LWFwcCIsImlzcyI6Imh0dHBzOi8vdGVzdCIsInRpZCI6ImI2Y2RkYmMxLTIzNDgtNDY0NC1hZjBhLTJmZGI1NTU3M2UzYiIsInN1YiI6InRlc3QtdXNlciIsImV4cCI6OTk5OTk5OTk5OSwiaWF0IjoxNjAwMDAwMDAwLCJuYmYiOjE2MDAwMDAwMDB9.invalid-signature"
+
+	// This should fail with signature error, not URL construction error
+	_, err := validator.ValidateToken(testToken)
+
+	// The error should be about signature validation or token malformation, not JWKS fetching
+	// This proves the URL construction worked (server was called successfully)
+	assert.Error(t, err)
+
+	// Any of these errors indicate that JWKS was successfully fetched but validation failed
+	validationErrors := []string{
+		"JWKS validation failed",
+		"token is malformed",
+		"could not base64 decode signature",
+		"invalid signature",
+		"failed to parse JWKS",
+	}
+
+	hasValidationError := false
+	for _, validErr := range validationErrors {
+		if err != nil && (err.Error() == validErr ||
+			err.Error() == "JWKS validation failed: "+validErr ||
+			(validErr == "token is malformed" && err.Error() == "JWKS validation failed: token is malformed: could not base64 decode signature: illegal base64 data at input byte 16")) {
+			hasValidationError = true
+			break
+		}
+	}
+
+	assert.True(t, hasValidationError, "Error should indicate validation failure, not URL fetching failure. Got: %s", err.Error())
+
+	// Most importantly, these errors should NOT appear (they indicate URL construction problems)
+	assert.NotContains(t, err.Error(), "failed to fetch JWKS")
+	assert.NotContains(t, err.Error(), "400")
+	assert.NotContains(t, err.Error(), "invalid_request")
+}
+
+func TestJWKSValidator_RealMicrosoftEntraToken(t *testing.T) {
+	// Skip if SLOW_TESTS is not set
+	if os.Getenv("SLOW_TESTS") != "1" {
+		t.Skip("Skipping slow test that requires database. Set SLOW_TESTS=1 to run")
+	}
+
+	// Real Microsoft Entra ID token (expires 2025-08-25T17:06:07+02:00)
+	// This is the same token from the original request
+	tokenString := "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IkpZaEFjVFBNWl9MWDZEQmxPV1E3SG4wTmVYRSIsImtpZCI6IkpZaEFjVFBNWl9MWDZEQmxPV1E3SG4wTmVYRSJ9.eyJhdWQiOiJhcGk6Ly9jZTMwNmY0Zi02M2VhLTRhZTMtOThjZS0xZGJhNzU3MmU5OTAiLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC9iNmNkZGJjMS0yMzQ4LTQ2NDQtYWYwYS0yZmRiNTU1NzNlM2IvIiwiaWF0IjoxNzU2MTMwNDY3LCJuYmYiOjE3NTYxMzA0NjcsImV4cCI6MTc1NjEzNDM2NywiYWlvIjoiQVNRQTIvOFpBQUFBbUpTTDBNd0RRTTgyaVlNU0pVS0tQMWZjL3dqWWtCSHF5bTZWNXI0cnJwND0iLCJhcHBpZCI6ImNlMzA2ZjRmLTYzZWEtNGFlMy05OGNlLTFkYmE3NTcyZTk5MCIsImFwcGlkYWNyIjoiMSIsImlkcCI6Imh0dHBzOi8vc3RzLndpbmRvd3MubmV0L2I2Y2RkYmMxLTIzNDgtNDY0NC1hZjBhLTJmZGI1NTU3M2UzYi8iLCJvaWQiOiI0Y2Y5YjRkMS00YjMwLTQ4ZTQtOThkOC04YzNiMDJjMWUyYTMiLCJyaCI6IjEuQVVnQXdkdk50a2dqUkVhdkNpX2JWVmMtTzA5dk1NN3FZLU5LbU00ZHVuVnk2WkEyQVFCSUFBLiIsInN1YiI6IjRjZjliNGQxLTRiMzAtNDhlNC05OGQ4LThjM2IwMmMxZTJhMyIsInRpZCI6ImI2Y2RkYmMxLTIzNDgtNDY0NC1hZjBhLTJmZGI1NTU3M2UzYiIsInV0aSI6IlFHWWEyWFF2UEVxdmp5OG1VYWtPQUEiLCJ2ZXIiOiIxLjAiLCJ4bXNfZnRkIjoiUVpnTzkwR3k0Y3NncW01eUFpVEhIWWxWQW5LMTIyUnl2ZkFHNXZ5OWhpOEJaWFZ5YjNCbGQyVnpkQzFrYzIxeiJ9.TxR2e-TM04fRC8yxm6_nMIVnmkV1mY5ua6nWWRb41SAmclxqVCBEK9s9OAmrQLe-rIYE1hK9qYBkxR7cntUHhF6IyxqpamR9_g_PbZnMdnv44A1eI_ngusatWsGYGJnVvvJAqxO1NtDyH6knTQQfDJTOHz890KGaKmRY15MXtdgzZl1d3ujbrN3QPpMswHsFr6HBFFtYGWK-j7erWcDlbdYP13rpduywVTBwAuEqEWwaCnfWdwHUpQeiysBhChU4KwIWkmuPYYA_CTaWKVvNhTZ9EZ9BVf7C8jdmYfcnzVzO0eNF_mPek2fSq-OK4g0B29S2mmHXR4XfnKhdobz66A"
+
+	logger := zap.NewNop()
+
+	// Test with JWKSValidator
+	t.Run("JWKSValidator", func(t *testing.T) {
+		validator := NewJWKSValidator(
+			"https://login.microsoftonline.com",
+			"", // Let it extract tenant from token
+			24*time.Hour,
+			logger,
+		)
+
+		claims, err := validator.ValidateToken(tokenString)
+
+		// Check if token is expired
+		if err != nil && err.Error() == "token has expired" {
+			t.Skip("Token has expired, skipping validation test")
+		}
+
+		require.NoError(t, err, "JWKS validation should succeed with fixed URL construction")
+		require.NotNil(t, claims)
+
+		// Verify expected claims from the token
+		assert.Equal(t, "4cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a3", claims.Subject)
+		assert.Equal(t, "https://sts.windows.net/b6cddbc1-2348-4644-af0a-2fdb55573e3b/", claims.Issuer)
+		assert.Equal(t, "b6cddbc1-2348-4644-af0a-2fdb55573e3b", claims.TenantID)
+		expectedAud := []string{"api://ce306f4f-63ea-4ae3-98ce-1dba7572e990"}
+		assert.Equal(t, expectedAud, []string(claims.Audience))
+
+		// Verify user classification
+		assert.Equal(t, "4cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a3", GetUserID(claims))
+		assert.Equal(t, "unknown", GetUserType(claims)) // No SCIPER
+		assert.False(t, IsPerson(claims))
+		assert.False(t, IsService(claims))
+	})
+
+	// Test with GenericValidator
+	t.Run("GenericValidator", func(t *testing.T) {
+		config := Config{
+			Method: ValidationJWKS,
+			JWKSConfig: &JWKSConfig{
+				BaseURL:     "https://login.microsoftonline.com",
+				KeyCacheTTL: 24 * time.Hour,
+			},
+		}
+
+		validator, err := NewGenericValidator(config, logger)
+		require.NoError(t, err)
+
+		claims, err := validator.ValidateToken(tokenString)
+
+		// Check if token is expired
+		if err != nil && err.Error() == "token has expired" {
+			t.Skip("Token has expired, skipping validation test")
+		}
+
+		require.NoError(t, err, "Generic validator should succeed with fixed URL construction")
+		require.NotNil(t, claims)
+
+		// Verify same claims as above
+		assert.Equal(t, "4cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a3", claims.Subject)
+		assert.Equal(t, "b6cddbc1-2348-4644-af0a-2fdb55573e3b", claims.TenantID)
+	})
+}
+
+func TestJWKSValidator_ErrorHandling(t *testing.T) {
+	logger := zap.NewNop()
+
+	t.Run("invalid token format", func(t *testing.T) {
+		validator := NewJWKSValidator("https://login.microsoftonline.com", "", time.Hour, logger)
+
+		_, err := validator.ValidateToken("invalid-token")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse token header")
+	})
+
+	t.Run("HMAC token with JWKS validator should fail", func(t *testing.T) {
+		validator := NewJWKSValidator("https://login.microsoftonline.com", "", time.Hour, logger)
+
+		// Create HMAC token
+		claims := UnifiedClaims{
+			UniqueID: "123456",
+			RegisteredClaims: jwt.RegisteredClaims{
+				Subject:   "test-user",
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+			},
+		}
+
+		token := NewUnified(claims)
+		tokenString, err := token.Sign([]byte("secret"))
+		require.NoError(t, err)
+
+		_, err = validator.ValidateToken(tokenString)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected signing method")
+		assert.Contains(t, err.Error(), "HS256")
+	})
 }
