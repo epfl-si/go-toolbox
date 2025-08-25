@@ -53,7 +53,7 @@ type JWKSConfig struct {
 
 // JWKSCache represents a thread-safe in-memory cache for JWKS keys
 type JWKSCache struct {
-	keys map[string]*CachedKey
+	keys  map[string]*CachedKey
 	mutex sync.RWMutex
 }
 
@@ -193,9 +193,7 @@ func (v *JWKSValidator) ValidateToken(tokenString string) (*UnifiedClaims, error
 
 	// Construct JWKS URL
 	jwksURL := fmt.Sprintf("%s/%s/discovery/v2.0/keys", v.baseURL, tenantID)
-	if aud, ok := tempClaims["aud"].(string); ok {
-		jwksURL += fmt.Sprintf("?appid=%s", aud)
-	}
+	// Note: Microsoft JWKS endpoint doesn't accept appid parameter, it returns all keys for the tenant
 
 	// Get key function with caching
 	keyFunc, err := v.getKeyFunc(jwksURL)
@@ -277,16 +275,16 @@ func (v *JWKSValidator) cleanupExpiredKeys() {
 	for range ticker.C {
 		now := time.Now()
 		v.keyCache.mutex.Lock()
-		
+
 		for url, cachedKey := range v.keyCache.keys {
 			if now.After(cachedKey.ExpiresAt) {
 				delete(v.keyCache.keys, url)
-				v.logger.Debug("Removed expired JWKS key from cache", 
+				v.logger.Debug("Removed expired JWKS key from cache",
 					zap.String("jwks_url", url),
 					zap.Time("expired_at", cachedKey.ExpiresAt))
 			}
 		}
-		
+
 		v.keyCache.mutex.Unlock()
 	}
 }
