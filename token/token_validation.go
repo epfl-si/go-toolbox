@@ -492,7 +492,8 @@ func (v *GenericValidator) determineValidationMethod(token *jwt.Token) Validatio
 	return v.config.Method
 }
 
-// ValidateToken validates a token using the appropriate validation method
+// ValidateToken parses and validates a token string. It automatically determines
+// whether to use HMAC or JWKS validation based on the token's "alg" header field.
 func (v *GenericValidator) ValidateToken(tokenString string) (*UnifiedClaims, error) {
 	// Parse header without validation to determine signing method
 	header, err := parseJWTHeader(tokenString)

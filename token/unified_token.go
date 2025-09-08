@@ -71,7 +71,7 @@ func ParseUnified(tokenString string, secret []byte) (*UnifiedClaims, error) {
 	return claims, nil
 }
 
-// NewUnified creates a new JWT token with UnifiedClaims
+// NewUnified creates a new HMAC-based JWT token with the provided UnifiedClaims.
 func NewUnified(claims UnifiedClaims) *Token {
 	jwt := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return &Token{JWT: jwt}

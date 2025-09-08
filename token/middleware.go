@@ -124,7 +124,9 @@ func GinMiddleware(secret []byte) gin.HandlerFunc {
 	}
 }
 
-// NewEntraMiddleware creates a Gin middleware for validating Entra ID JWT tokens using JWKS and local tokens using HMAC
+// NewEntraMiddleware creates a pre-configured Gin middleware for validating tokens.
+// It sets up a GenericValidator that handles both Entra ID tokens (via JWKS) and
+// locally-issued tokens (via HMAC). This is a convenient constructor for a common use case.
 func NewEntraMiddleware(hmacSecret []byte, logger *zap.Logger) (gin.HandlerFunc, error) {
 	config := Config{
 		Method: ValidationJWKS,

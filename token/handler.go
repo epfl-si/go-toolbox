@@ -13,8 +13,9 @@ type UnifiedAuthenticater interface {
 	Authenticate(login, pass string) (*UnifiedClaims, error)
 }
 
-// UnifiedPostLoginHandler handles the login requests and issues JWT tokens
-// Should be moved to go-toolbox/token as soon as validated
+// UnifiedPostLoginHandler creates a Gin handler for user login.
+// It authenticates credentials using the provided UnifiedAuthenticater, and if successful,
+// issues a new HMAC-signed JWT containing the UnifiedClaims.
 func UnifiedPostLoginHandler(log *zap.Logger, auth UnifiedAuthenticater, secret []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		login := c.PostForm("login")
