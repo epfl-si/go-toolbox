@@ -109,6 +109,43 @@ func main() {
 }
 ```
 
+```markdown
+
+### Authentication Gin Handler
+
+The package provides a Gin unified login handler for issuing JWT tokens:
+
+```go
+// Create an authenticator that implements UnifiedAuthenticater
+type MyAuthenticator struct {
+    // your fields here
+}
+
+func (a *MyAuthenticator) Authenticate(login, pass string) (*token.UnifiedClaims, error) {
+    // Your authentication logic here
+    return &token.UnifiedClaims{
+        UniqueID: "123456",
+        Name:     "John Doe",
+        Email:    "john.doe@epfl.ch",
+    }, nil
+}
+
+// Setup the login handler
+secret := []byte("your-secret-key")
+auth := &MyAuthenticator{}
+loginHandler := token.UnifiedPostLoginHandler(logger, auth, secret)
+
+// Use in your Gin router
+r.POST("/login", loginHandler)
+```
+
+The handler:
+- Accepts POST requests with "login" and "pass" form fields
+- Uses the provided authenticator to validate credentials
+- Returns a JWT token on successful authentication
+- Supports both person and service account tokens
+```
+
 ### Advanced Gin Middleware with JWKS
 
 For production applications using Entra ID tokens:
@@ -386,7 +423,7 @@ claims, err := token.ParseUnified(tokenString, secret)
 // Before (deprecated)
 r.Use(token.GinMiddleware(secret))
 
-// After (recommended)
+// Now (recommended)
 config := token.Config{
     Method: token.ValidationHMAC,
     Secret: secret,
@@ -394,6 +431,10 @@ config := token.Config{
 validator, _ := token.NewGenericValidator(config, logger)
 middlewareConfig := token.DefaultMiddlewareConfig(validator, logger)
 r.Use(token.UnifiedJWTMiddleware(middlewareConfig))
+
+// This sequence being tedious, see the Validation Middleware section
+// for a simpler setup
+
 ```
 
 ### Step 6: Update Route Handlers
@@ -428,6 +469,16 @@ r.GET("/protected", func(c *gin.Context) {
         "unique_id": claims.UniqueID,
     })
 })
+```
+
+### Step 7: Update Login Handlers
+
+```go
+// Before (deprecated)
+handler := token.PostLoginHandler(logger, auth, secret)
+
+// Now (recommended)
+handler := token.UnifiedPostLoginHandler(logger, auth, secret)
 ```
 
 ## Advanced Usage
@@ -494,6 +545,30 @@ prodConfig := token.Config{
     CacheTTL:     5 * time.Minute,
 }
 ```
+
+### Validation middleware
+
+For convenience there's an helper to generate a middleware that handle both Entra and local generated HMAC token:
+
+```go
+// Create middleware that handles both Entra ID and local tokens
+middleware, err := token.NewEntraMiddleware(
+    []byte("local-hmac-secret"),
+    logger,
+)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Use in your Gin router
+r.Use(middleware)
+```
+
+This middleware:
+- Automatically validates Entra ID tokens using JWKS
+- Falls back to HMAC validation for local development tokens
+- Configures optimal cache settings for JWKS keys
+- Provides unified claims access in handlers
 
 ## Testing
 

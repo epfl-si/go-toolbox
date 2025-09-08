@@ -10,32 +10,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// PostLoginHandler is the handler that checks the login and password and returns a JWT token
-func PostLoginHandler(log *zap.Logger, auth Authenticater, secret []byte) gin.HandlerFunc {
-	log.Info("Creating login handler")
-	return func(c *gin.Context) {
-		login := c.PostForm("login")
-		pass := c.PostForm("pass")
-
-		log.Info("Login attempt", zap.String("login", login))
-
-		claims, err := auth.Authenticate(login, pass)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-			return
-		}
-
-		t := New(claims)
-		encoded, err := t.Sign(secret)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"access_token": encoded})
-	}
-}
-
 // MiddlewareConfig defines configuration for the JWT middleware
 type MiddlewareConfig struct {
 	Validator  TokenValidator // Token validator implementation
@@ -148,4 +122,24 @@ func GinMiddleware(secret []byte) gin.HandlerFunc {
 		c.Set("token", t)
 		c.Next()
 	}
+}
+
+// NewEntraMiddleware creates a Gin middleware for validating Entra ID JWT tokens using JWKS and local tokens using HMAC
+func NewEntraMiddleware(hmacSecret []byte, logger *zap.Logger) (gin.HandlerFunc, error) {
+	config := Config{
+		Method: ValidationJWKS,
+		JWKSConfig: &JWKSConfig{
+			BaseURL:     "https://login.microsoftonline.com",
+			KeyCacheTTL: 5 * time.Minute,
+		},
+		CacheEnabled: true,
+		CacheTTL:     5 * time.Minute,
+		Secret:       hmacSecret,
+	}
+	validator, err := NewGenericValidator(config, logger)
+	if err != nil {
+		return nil, err
+	}
+	middlewareConfig := DefaultMiddlewareConfig(validator, logger)
+	return UnifiedJWTMiddleware(middlewareConfig), nil
 }
