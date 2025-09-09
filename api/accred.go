@@ -200,12 +200,15 @@ func AccredV0ToAccred(accredV0 *api_models.AccredV0) *api_models.Accred {
 
 // GetAccredPrivateEmails: get all private emails
 //
+// Parameter(s):
+// - persId string: TODO
+//
 // Return type(s):
 // - []api_models.PrivateEmail: all private emails
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetAccredPrivateEmails(accredId string) ([]api_models.PrivateEmail, int64, int, error) {
+func GetAccredPrivateEmails(persId string) ([]api_models.PrivateEmail, int64, int, error) {
 
 	var res *http.Response
 	var resBytes []byte
@@ -217,7 +220,18 @@ func GetAccredPrivateEmails(accredId string) ([]api_models.PrivateEmail, int64, 
 		log.Fatal(err.Error())
 	}
 
-	resBytes, res, err = CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/accreds/privateemails", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	url := os.Getenv("API_GATEWAY_URL") + "/v1/accreds/privateemails"
+
+	// TODO PersId handling (but doesn't work with api_models.PrivateEmailsResponse)
+	// if persId != "" {
+	// 	if !toolbox_regexp.IsPersId(persId) {
+	// 		return privateEmailsResponse.PrivateEmails, 0, http.StatusBadRequest, fmt.Errorf("go-toolbox: GetAccredPrivateEmails: InvalidPersid: %s", persId)
+	// 	}
+
+	// 	url += "/" + persId
+	// }
+
+	resBytes, res, err = CallApi("GET", url, "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return privateEmailsResponse.PrivateEmails, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccredPrivateEmails: CallApi: %s", err.Error())
 	}
