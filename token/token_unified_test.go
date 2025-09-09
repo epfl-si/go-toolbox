@@ -537,3 +537,118 @@ func TestJWKSValidator_ErrorHandling(t *testing.T) {
 		assert.Contains(t, err.Error(), "HS256")
 	})
 }
+
+func TestGenericValidator_ValidationErrors(t *testing.T) {
+	logger := zap.NewNop()
+	secret := []byte("very-secret-key")
+	config := Config{
+		Method: ValidationHMAC,
+		Secret: secret,
+	}
+
+	validator, err := NewGenericValidator(config, logger)
+	require.NoError(t, err)
+
+	// --- Test Cases ---
+	tests := []struct {
+		name        string
+		tokenFunc   func() string // Function to generate token
+		expectedErr string
+	}{
+		{
+			name: "malformed token (wrong number of segments)",
+			tokenFunc: func() string {
+				return "this.is.not.a.valid.jwt"
+			},
+			expectedErr: "invalid token format",
+		},
+		{
+			name: "malformed token (bad base64 header)",
+			tokenFunc: func() string {
+				return "bad!base64.payload.signature"
+			},
+			expectedErr: "failed to decode header",
+		},
+		{
+			name: "malformed token (header is not json)",
+			tokenFunc: func() string {
+				// "not json" base64 encoded for RawURLEncoding
+				return "bm90IGpzb24.payload.signature"
+			},
+			expectedErr: "failed to parse header JSON",
+		},
+		{
+			name: "expired token",
+			tokenFunc: func() string {
+				claims := UnifiedClaims{
+					UniqueID: "123456",
+					RegisteredClaims: jwt.RegisteredClaims{
+						ExpiresAt: jwt.NewNumericDate(time.Now().Add(-time.Hour)), // Expired
+						IssuedAt:  jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)),
+					},
+				}
+				token := NewUnified(claims)
+				tokenString, _ := token.Sign(secret)
+				return tokenString
+			},
+			expectedErr: "token has expired",
+		},
+		{
+			name: "token used before nbf",
+			tokenFunc: func() string {
+				claims := UnifiedClaims{
+					UniqueID: "123456",
+					RegisteredClaims: jwt.RegisteredClaims{
+						ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+						NotBefore: jwt.NewNumericDate(time.Now().Add(time.Minute)), // Not yet valid
+						IssuedAt:  jwt.NewNumericDate(time.Now()),
+					},
+				}
+				token := NewUnified(claims)
+				tokenString, _ := token.Sign(secret)
+				return tokenString
+			},
+			expectedErr: "token is not valid yet",
+		},
+		{
+			name: "invalid signature",
+			tokenFunc: func() string {
+				claims := UnifiedClaims{
+					UniqueID: "123456",
+					RegisteredClaims: jwt.RegisteredClaims{
+						ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+					},
+				}
+				token := NewUnified(claims)
+				tokenString, _ := token.Sign([]byte("different-secret")) // Signed with wrong key
+				return tokenString
+			},
+			expectedErr: "signature is invalid",
+		},
+		{
+			name: "token with invalid uniqueid format",
+			tokenFunc: func() string {
+				claims := UnifiedClaims{
+					UniqueID: "12345", // Invalid format
+					RegisteredClaims: jwt.RegisteredClaims{
+						ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+					},
+				}
+				token := NewUnified(claims)
+				tokenString, _ := token.Sign(secret)
+				return tokenString
+			},
+			expectedErr: "invalid claims: invalid uniqueid format",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tokenString := tt.tokenFunc()
+			_, err := validator.ValidateToken(tokenString)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.expectedErr)
+		})
+	}
+}
