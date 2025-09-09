@@ -3,11 +3,19 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
-	api "github.com/epfl-si/go-toolbox/api/models"
+	api_models "github.com/epfl-si/go-toolbox/api/models"
 )
+
+func init() {
+	err := checkEnvironment()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+}
 
 // GetAccred: get a accred
 //
@@ -15,17 +23,14 @@ import (
 // - accredId string: the <sciper>:<unitid> of the accred
 //
 // Return type(s):
-// - *api.Accred: the accred
+// - *api_models.Accred: the accred
 // - int: response http status code
 // - error: any error encountered
-func GetAccred(accredId string) (*api.Accred, int, error) {
-	err := checkEnvironment()
-	if err != nil {
-		return nil, http.StatusBadRequest, err
-	}
+func GetAccred(accredId string) (*api_models.Accred, int, error) {
 
 	var res *http.Response
 	var resBytes []byte
+	var err error
 
 	if os.Getenv("LOCAL_DATA") != "" {
 		res = &http.Response{}
@@ -39,11 +44,11 @@ func GetAccred(accredId string) (*api.Accred, int, error) {
 	}
 
 	// unmarshall response
-	var entity api.Accred
+	var entity api_models.Accred
 	err = json.Unmarshal(resBytes, &entity)
 	if err != nil {
 		// if error, try to unmarshall from AccredV0 (which refers to PositionV0 where restricted field is a string)
-		var entityV0 api.AccredV0
+		var entityV0 api_models.AccredV0
 		err2 := json.Unmarshal(resBytes, &entityV0)
 		if err2 != nil {
 			// if error, try to unmarshall from AccredV0 (which refers to PositionV0 where restricted field is a string)
@@ -57,12 +62,12 @@ func GetAccred(accredId string) (*api.Accred, int, error) {
 }
 
 type AccredsResponse struct {
-	Accreds []*api.Accred `json:"accreds"`
-	Count   int64         `json:"count"`
+	Accreds []*api_models.Accred `json:"accreds"`
+	Count   int64                `json:"count"`
 }
 type AccredsV0Response struct {
-	Accreds []*api.AccredV0 `json:"accreds"`
-	Count   int64           `json:"count"`
+	Accreds []*api_models.AccredV0 `json:"accreds"`
+	Count   int64                  `json:"count"`
 }
 
 // GetAccreds retrieves accreditations for the given persons and unit IDs.
@@ -73,11 +78,11 @@ type AccredsV0Response struct {
 // - params map[string]string: any other parameter available on /v1/accreds (eg. state=active,inactive)
 //
 // Return type(s):
-// - []*api.Accred: slice of accreditations
+// - []*api_models.Accred: slice of accreditations
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetAccreds(persIds string, unitIds string, params map[string]string) ([]*api.Accred, int64, int, error) {
+func GetAccreds(persIds string, unitIds string, params map[string]string) ([]*api_models.Accred, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusBadRequest, err
@@ -114,7 +119,7 @@ func GetAccreds(persIds string, unitIds string, params map[string]string) ([]*ap
 			return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccreds: Unmarshal: %s", err.Error())
 		}
 
-		entities.Accreds = make([]*api.Accred, 0)
+		entities.Accreds = make([]*api_models.Accred, 0)
 		for _, accredV0 := range entitiesV0.Accreds {
 			accred := AccredV0ToAccred(accredV0)
 			entities.Accreds = append(entities.Accreds, accred)
@@ -131,11 +136,11 @@ func GetAccreds(persIds string, unitIds string, params map[string]string) ([]*ap
 // - url string: the URL to retrieve accreditations from
 //
 // Return type(s):
-// - []*api.Accred: slice of accreditations
+// - []*api_models.Accred: slice of accreditations
 // - int64: count
 // - int: response http status code
 // - error: any error encountered
-func GetAccredsFromUrl(url string) ([]*api.Accred, int64, int, error) {
+func GetAccredsFromUrl(url string) ([]*api_models.Accred, int64, int, error) {
 	resBytes, res, err := CallApi("GET", url, "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccredsFromUrl: CallApi: %s", err.Error())
@@ -151,8 +156,8 @@ func GetAccredsFromUrl(url string) ([]*api.Accred, int64, int, error) {
 	return entities.Accreds, entities.Count, res.StatusCode, nil
 }
 
-func AccredV0ToAccred(accredV0 *api.AccredV0) *api.Accred {
-	accred := &api.Accred{
+func AccredV0ToAccred(accredV0 *api_models.AccredV0) *api_models.Accred {
+	accred := &api_models.Accred{
 		PersId:     accredV0.PersId,
 		Person:     accredV0.Person,
 		UnitId:     accredV0.UnitId,
@@ -180,7 +185,7 @@ func AccredV0ToAccred(accredV0 *api.AccredV0) *api.Accred {
 	}
 
 	if accredV0.Position != nil {
-		accred.Position = &api.Position{
+		accred.Position = &api_models.Position{
 			Id:             accredV0.PositionId,
 			LabelFr:        accredV0.Position.LabelFr,
 			LabelEn:        accredV0.Position.LabelEn,
@@ -193,4 +198,30 @@ func AccredV0ToAccred(accredV0 *api.AccredV0) *api.Accred {
 	}
 
 	return accred
+}
+
+// GetAccredPrivateEmails: get all private emails
+//
+// Return type(s):
+// - []api_models.PrivateEmail: all private emails
+// - int64: count
+// - int: response http status code
+// - error: any error encountered
+func GetAccredPrivateEmails(accredId string) ([]api_models.PrivateEmail, int64, int, error) {
+
+	var res *http.Response
+	var resBytes []byte
+	var privateEmailsResponse api_models.PrivateEmailsResponse
+
+	resBytes, res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/accreds/privateemails", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	if err != nil {
+		return privateEmailsResponse.PrivateEmails, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccredPrivateEmails: CallApi: %s", err.Error())
+	}
+
+	err = json.Unmarshal(resBytes, &privateEmailsResponse)
+	if err != nil {
+		return privateEmailsResponse.PrivateEmails, privateEmailsResponse.Count, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccredPrivateEmails: Unmarshal: %s", err.Error())
+	}
+
+	return privateEmailsResponse.PrivateEmails, privateEmailsResponse.Count, res.StatusCode, nil
 }
