@@ -10,13 +10,6 @@ import (
 	api_models "github.com/epfl-si/go-toolbox/api/models"
 )
 
-func init() {
-	err := checkEnvironment()
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-}
-
 // GetAccred: get a accred
 //
 // Parameters:
@@ -31,6 +24,11 @@ func GetAccred(accredId string) (*api_models.Accred, int, error) {
 	var res *http.Response
 	var resBytes []byte
 	var err error
+
+	err = checkEnvironment()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
 	if os.Getenv("LOCAL_DATA") != "" {
 		res = &http.Response{}
@@ -212,8 +210,14 @@ func GetAccredPrivateEmails(accredId string) ([]api_models.PrivateEmail, int64, 
 	var res *http.Response
 	var resBytes []byte
 	var privateEmailsResponse api_models.PrivateEmailsResponse
+	var err error
 
-	resBytes, res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/accreds/privateemails", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	err = checkEnvironment()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	resBytes, res, err = CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/accreds/privateemails", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
 		return privateEmailsResponse.PrivateEmails, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccredPrivateEmails: CallApi: %s", err.Error())
 	}
