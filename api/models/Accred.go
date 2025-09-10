@@ -21,6 +21,7 @@ type Accred struct {
 	Author     *Person    `json:"author"`
 	Revalman   string     `json:"manualreval"`
 	Order      int        `json:"order"`
+	State      string     `json:"state"`
 	StartDate  time.Time  `json:"startdate"`
 	EndDate    *time.Time `json:"enddate"`
 	RevalDate  *time.Time `json:"revalidatedat"`
