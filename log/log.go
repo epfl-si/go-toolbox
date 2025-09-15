@@ -54,7 +54,8 @@ func GetLoggerConfig(logLevel string, stdouts []string, stderrs []string, encodi
 // GetLogger returns a new logger with the specified log level.
 //
 // Parameters:
-// - logLevel: a string representing the log level ("debug", "error", "warn", "fatal")
+//   - logLevel: a string representing the log level ("debug", "error", "warn", "fatal")
+//     "info" is the default log level (in case you pass an invalid level)
 //
 // Return type(s):
 // - *zap.Logger: a pointer to the logger
@@ -86,65 +87,72 @@ func LogApiMessage(logger *zap.Logger, priority, message string) {
 	}
 }
 
-func LogApiInfo(logger *zap.Logger, ctx *gin.Context, message string) {
+// LogApi logs a message at the specified level with context information
+func LogApi(logger *zap.Logger, level string, ctx *gin.Context, message string) {
 	reqMethod := ctx.Request.Method
 	reqUri := ctx.Request.RequestURI
 	statusCode := ctx.Writer.Status()
 
-	// Request IP
+	// Request IP - consistent handling for all levels
 	clientIP := ctx.GetHeader("X-Forwarded-For")
 	if clientIP == "" {
 		clientIP = ctx.ClientIP()
 	}
 
-	// if UUID provided by KrakenD, use it, otherwise take the one generated locally
+	// UUID - consistent handling for all levels
 	uuid := ctx.GetHeader("X-Krakend-UUID")
 	if uuid == "" {
 		val, _ := ctx.Get("uuid")
 		uuid = fmt.Sprintf("%v", val)
 	}
+
 	userIdValue, _ := ctx.Get("userId")
 	userId := ""
 	if userIdValue != nil {
 		userId = fmt.Sprintf("%v", userIdValue)
 	}
 
-	logger.Info(message,
+	// Common fields for all log levels
+	fields := []zap.Field{
 		zap.String("event.dataset", os.Getenv("API_NAME")),
 		zap.String("http.request.method", reqMethod),
 		zap.String("url.path", reqUri),
 		zap.Int("http.response.status_code", statusCode),
 		zap.String("client.address", clientIP),
 		zap.String("user.id", userId),
-		zap.String("uuid", fmt.Sprintf("%v", uuid)),
-		zap.Int64("processing_time", ctx.GetInt64("processing_time")),
-	)
+		zap.String("uuid", uuid),
+	}
+
+	// Add processing_time for debug and info levels
+	if strings.ToUpper(level) != "ERROR" {
+		fields = append(fields, zap.Int64("processing_time", ctx.GetInt64("processing_time")))
+	}
+
+	// Log at the appropriate level
+	switch strings.ToUpper(level) {
+	case "DEBUG":
+		logger.Debug(message, fields...)
+	case "INFO":
+		logger.Info(message, fields...)
+	case "ERROR":
+		logger.Error(message, fields...)
+	case "WARN":
+		logger.Warn(message, fields...)
+	default:
+		logger.Info(message, fields...) // Default to Info level
+	}
+}
+
+func LogApiInfo(logger *zap.Logger, ctx *gin.Context, message string) {
+	LogApi(logger, "INFO", ctx, message)
+}
+
+func LogApiDebug(logger *zap.Logger, ctx *gin.Context, message string) {
+	LogApi(logger, "DEBUG", ctx, message)
 }
 
 func LogApiError(logger *zap.Logger, ctx *gin.Context, message string) {
-	reqMethod := ctx.Request.Method
-	reqUri := ctx.Request.RequestURI
-	statusCode := ctx.Writer.Status()
-
-	// Request IP
-	clientIP := ctx.ClientIP()
-
-	uuid, _ := ctx.Get("uuid")
-	userIdValue, _ := ctx.Get("userId")
-	userId := ""
-	if userIdValue != nil {
-		userId = fmt.Sprintf("%v", userIdValue)
-	}
-
-	logger.Error(message,
-		zap.String("event.dataset", os.Getenv("API_NAME")),
-		zap.String("http.request.method", reqMethod),
-		zap.String("url.path", reqUri),
-		zap.Int("http.response.status_code", statusCode),
-		zap.String("client.address", clientIP),
-		zap.String("user.id", userId),
-		zap.String("uuid", fmt.Sprintf("%v", uuid)),
-	)
+	LogApi(logger, "ERROR", ctx, message)
 }
 
 func LogApiCustom(logger *zap.Logger, level string, method string, uri string, status int, body string, msg string) {
