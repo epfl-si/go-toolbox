@@ -240,7 +240,12 @@ func LoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		start := ctx.GetInt64("start")
 		ctx.Set("processing_time", end-start)
 
-		log.LogApiDebug(logger, ctx, "")
+		// Check URL for to be logged at Debug level (liveness)
+		if strings.HasPrefix(ctx.Request.URL.Path, "/liveness") {
+			log.LogApiDebug(logger, ctx, "")
+		} else {
+			log.LogApiInfo(logger, ctx, "")
+		}
 
 		ctx.Next()
 	}
