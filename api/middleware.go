@@ -240,7 +240,7 @@ func LoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		start := ctx.GetInt64("start")
 		ctx.Set("processing_time", end-start)
 
-		log.LogApiInfo(logger, ctx, "")
+		log.LogApiDebug(logger, ctx, "")
 
 		ctx.Next()
 	}
