@@ -1,4 +1,4 @@
-module github.com/epfl-si/go-toolbox/token
+module github.com/epfl-si/go-toolbox/token/v2
 
 go 1.25
 
