@@ -16,27 +16,21 @@ type Unit struct {
 	Children []string `json:"children"` // List of child unit IDs
 }
 
-// UnifiedClaims supports both local and Entra different token types
-// User tokens and application tokens (machine-to-machine)
+// UnifiedClaims supports both local HMAC and Entra JWKS token formats
 type UnifiedClaims struct {
-	jwt.RegisteredClaims // Standard JWT claims (iss, sub, exp, etc.)
-
 	// Core identifiers
 	UniqueID string `json:"uniqueid,omitempty"` // SCIPER (6 digits) or service account (M + 5 digits)
 	Name     string `json:"name,omitempty"`     // Display name
 	Email    string `json:"email,omitempty"`    // Primary email address
 	TenantID string `json:"tid,omitempty"`      // Azure Entra tenant ID
 
-	// Machine-to-machine specific claims
-	AuthorizedParty string `json:"azp,omitempty"` // AppId of the client application
-	ObjectID        string `json:"oid,omitempty"` // Service Principal Object ID
-
 	// Authorization
 	Groups []string `json:"groups,omitempty"` // Group memberships
 	Scopes []string `json:"scopes,omitempty"` // Token scopes
 	Units  []Unit   `json:"units,omitempty"`  // EPFL unit info with hierarchy
-	Roles  []string `json:"roles,omitempty"`  // User roles or App Roles (e.g., ["default_access"])
+	Roles  []string `json:"roles,omitempty"`  // User roles
 
+	jwt.RegisteredClaims // Standard JWT claims (iss, sub, exp, etc.)
 }
 
 // ToUnifiedClaims converts CustomClaims to UnifiedClaims for backward compatibility

@@ -1,0 +1,209 @@
+package token
+
+import (
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+)
+
+// contextKey is a custom type for context keys to avoid collisions (Go best practice)
+type contextKey string
+
+// Context key constants for type-safe context access
+const (
+	// Primary context keys (recommended)
+	ContextKeyClaims     contextKey = "claims"
+	ContextKeyMachineCtx contextKey = "machine_context"
+	ContextKeyUserCtx    contextKey = "user_context"
+	ContextKeyIdentity   contextKey = "identity"
+
+	// Deprecated context keys (backward compatibility)
+	// Deprecated: Use ContextKeyClaims with GetPrincipalID() instead
+	ContextKeyUserID contextKey = "user_id"
+	// Deprecated: Use ContextKeyClaims with GetUserType() instead
+	ContextKeyUserType contextKey = "user_type"
+	// Deprecated: Use ContextKeyClaims directly for claims.Email
+	ContextKeyUserEmail contextKey = "user_email"
+)
+
+// extractBearerToken extracts the Bearer token from Authorization header
+// Returns the token string (without "Bearer " prefix) or an error
+func extractBearerToken(c *gin.Context, headerName string) (string, error) {
+	authHeader := c.GetHeader(headerName)
+	if authHeader == "" {
+		return "", fmt.Errorf("authorization header missing")
+	}
+
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		return "", fmt.Errorf("token must start with 'Bearer '")
+	}
+
+	return strings.TrimPrefix(authHeader, "Bearer "), nil
+}
+
+// MiddlewareConfig defines configuration for the JWT middleware
+type MiddlewareConfig struct {
+	Validator  TokenValidator // Token validator implementation
+	Logger     *zap.Logger    // Logger instance
+	ContextKey string         // Key for storing claims in context (default: "claims")
+	HeaderName string         // Authorization header name (default: "Authorization")
+}
+
+// DefaultMiddlewareConfig returns default middleware configuration
+func DefaultMiddlewareConfig(validator TokenValidator, logger *zap.Logger) MiddlewareConfig {
+	return MiddlewareConfig{
+		Validator:  validator,
+		Logger:     logger,
+		ContextKey: string(ContextKeyClaims), // Use type-safe constant
+		HeaderName: "Authorization",
+	}
+}
+
+// UnifiedJWTMiddleware creates middleware that handles JWT token validation
+func UnifiedJWTMiddleware(config MiddlewareConfig) gin.HandlerFunc {
+	if config.Logger == nil {
+		config.Logger = zap.NewNop()
+	}
+	if config.ContextKey == "" {
+		config.ContextKey = string(ContextKeyClaims) // Use type-safe constant
+	}
+	if config.HeaderName == "" {
+		config.HeaderName = "Authorization"
+	}
+
+	return func(c *gin.Context) {
+		// Extract token from Authorization header
+		tokenString, err := extractBearerToken(c, config.HeaderName)
+		if err != nil {
+			config.Logger.Debug("Invalid token format", zap.Error(err))
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			c.Abort()
+			return
+		}
+
+		// Validate token
+		start := time.Now()
+		claims, err := config.Validator.ValidateToken(tokenString)
+		duration := time.Since(start)
+
+		if err != nil {
+			config.Logger.Debug("Token validation failed",
+				zap.Error(err),
+				zap.Duration("duration", duration))
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": err.Error(), // Use string representation of error
+			})
+			c.Abort()
+			return
+		}
+
+		config.Logger.Debug("Token validation successful",
+			zap.String("principal_id", GetPrincipalID(claims)),
+			zap.Duration("duration", duration))
+
+		// Set unified claims and user info in context
+		c.Set(config.ContextKey, claims)
+
+		// Set token-type-specific contexts
+		switch GetTokenType(claims) {
+		case TypeMachine:
+			machineCtx := ExtractMachineContext(claims)
+			c.Set(string(ContextKeyMachineCtx), machineCtx)
+			c.Set(string(ContextKeyIdentity), machineCtx.Identity)
+		case TypeUser:
+			// Create user-specific context using proper UserContext struct
+			userCtx := &UserContext{
+				ID:       GetPrincipalID(claims), // Use new function
+				Type:     "unknown",              // EPFL-specific type determination moved to epfl package
+				Email:    claims.Email,
+				Groups:   claims.Groups,
+				TenantID: claims.TenantID,
+			}
+			c.Set(string(ContextKeyUserCtx), userCtx)
+			c.Set(string(ContextKeyIdentity), GetIdentity(claims))
+		}
+
+		c.Next()
+	}
+}
+
+// NewEntraMiddleware creates a pre-configured Gin middleware for validating tokens.
+// It sets up a GenericValidator that handles both Entra ID tokens (via JWKS) and
+// locally-issued tokens (via HMAC). This is a convenient constructor for a common use case.
+func NewEntraMiddleware(hmacSecret []byte, logger *zap.Logger) (gin.HandlerFunc, error) {
+	config := Config{
+		Method: SigningPublicKey,
+		JWKSConfig: &JWKSConfig{
+			BaseURL:     "https://login.microsoftonline.com",
+			KeyCacheTTL: 5 * time.Minute,
+		},
+		Secret: hmacSecret,
+	}
+	validator, err := NewGenericValidator(config, logger)
+	if err != nil {
+		return nil, err
+	}
+	middlewareConfig := DefaultMiddlewareConfig(validator, logger)
+	return UnifiedJWTMiddleware(middlewareConfig), nil
+}
+
+// MachineTokenMiddleware creates a middleware that validates machine tokens
+// and requires the token to be a machine token.
+func MachineTokenMiddleware(validator TokenValidator, logger *zap.Logger) gin.HandlerFunc {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
+	middlewareConfig := DefaultMiddlewareConfig(validator, logger)
+
+	return func(c *gin.Context) {
+		// Extract token from Authorization header
+		tokenString, err := extractBearerToken(c, middlewareConfig.HeaderName)
+		if err != nil {
+			logger.Debug("Invalid token format", zap.Error(err))
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			c.Abort()
+			return
+		}
+
+		// Validate token
+		claims, err := middlewareConfig.Validator.ValidateToken(tokenString)
+		if err != nil {
+			logger.Debug("Token validation failed", zap.Error(err))
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": err.Error(), // Use string representation of error
+			})
+			c.Abort()
+			return
+		}
+
+		// Check if token is a machine token
+		if !IsMachineToken(claims) {
+			logger.Debug("Token is not a machine token",
+				zap.String("token_type", string(GetTokenType(claims))))
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "machine token required", // Clear, lowercase message
+			})
+			c.Abort()
+			return
+		}
+
+		// Set machine context
+		machineCtx := ExtractMachineContext(claims)
+		c.Set(string(ContextKeyMachineCtx), machineCtx)
+		c.Set(string(ContextKeyIdentity), machineCtx.Identity)
+
+		// Set unified claims
+		c.Set(middlewareConfig.ContextKey, claims)
+
+		logger.Debug("Machine token validation successful",
+			zap.String("app_id", machineCtx.ApplicationID),
+			zap.Strings("roles", machineCtx.Roles))
+
+		c.Next()
+	}
+}
