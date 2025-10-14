@@ -225,7 +225,7 @@ func ExampleMachineTokenMiddleware() {
 	validator := NewHMACValidator(secret, logger, Config{})
 
 	// Create Gin router with machine token middleware
-	router := gin.New() // TODO: Consider if mock or actual router needed
+	router := gin.New()
 
 	// M2M endpoint requiring machine tokens
 	router.Use(MachineTokenMiddleware(validator, logger))

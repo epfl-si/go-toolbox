@@ -50,16 +50,6 @@ func IsUserToken(claims *UnifiedClaims) bool {
 	return GetTokenType(claims) == TypeUser
 }
 
-// HasDefaultAccess checks if the token has the default_access role
-func HasDefaultAccess(claims *UnifiedClaims) bool {
-	for _, r := range claims.Roles {
-		if r == "default_access" {
-			return true
-		}
-	}
-	return false
-}
-
 // GetIdentity returns a unified identity string for logging/audit
 func GetIdentity(claims *UnifiedClaims) string {
 	switch GetTokenType(claims) {
@@ -113,13 +103,9 @@ func GetServicePrincipalID(claims *UnifiedClaims) string {
 	return GetApplicationID(claims) // fallback
 }
 
-// HasApplicationRole checks if a machine token has a specific application role.
-// Returns false for user tokens or if the role is not present.
-// This is safer than using HasRole() directly as it validates token type first.
-func HasApplicationRole(claims *UnifiedClaims, role string) bool {
-	if !IsMachineToken(claims) {
-		return false
-	}
+// HasRole checks if the token has a specific role.
+// Returns true if the role is present in claims.Roles, regardless of token type.
+func HasRole(claims *UnifiedClaims, role string) bool {
 	for _, r := range claims.Roles {
 		if r == role {
 			return true
@@ -128,19 +114,18 @@ func HasApplicationRole(claims *UnifiedClaims, role string) bool {
 	return false
 }
 
+// HasApplicationRole checks if a machine token has a specific application role.
+// Returns false for user tokens or if the role is not present.
+// This is safer than using HasRole() directly as it validates token type first.
+func HasApplicationRole(claims *UnifiedClaims, role string) bool {
+	return IsMachineToken(claims) && HasRole(claims, role)
+}
+
 // HasUserRole checks if a user token has a specific role.
 // Returns false for machine tokens or if the role is not present.
 // This provides symmetry with HasApplicationRole for type-safe role checking.
 func HasUserRole(claims *UnifiedClaims, role string) bool {
-	if !IsUserToken(claims) {
-		return false
-	}
-	for _, r := range claims.Roles {
-		if r == role {
-			return true
-		}
-	}
-	return false
+	return IsUserToken(claims) && HasRole(claims, role)
 }
 
 // Unit represents an EPFL organizational unit with its hierarchy information

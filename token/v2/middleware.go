@@ -15,19 +15,11 @@ type contextKey string
 
 // Context key constants for type-safe context access
 const (
-	// Primary context keys (recommended)
+	// Primary context keys
 	ContextKeyClaims     contextKey = "claims"
 	ContextKeyMachineCtx contextKey = "machine_context"
 	ContextKeyUserCtx    contextKey = "user_context"
 	ContextKeyIdentity   contextKey = "identity"
-
-	// Deprecated context keys (backward compatibility)
-	// Deprecated: Use ContextKeyClaims with GetPrincipalID() instead
-	ContextKeyUserID contextKey = "user_id"
-	// Deprecated: Use ContextKeyClaims with GetUserType() instead
-	ContextKeyUserType contextKey = "user_type"
-	// Deprecated: Use ContextKeyClaims directly for claims.Email
-	ContextKeyUserEmail contextKey = "user_email"
 )
 
 // extractBearerToken extracts the Bearer token from Authorization header
@@ -109,16 +101,22 @@ func UnifiedJWTMiddleware(config MiddlewareConfig) gin.HandlerFunc {
 		c.Set(config.ContextKey, claims)
 
 		// Set token-type-specific contexts
-		switch GetTokenType(claims) {
+		tokenType := GetTokenType(claims) // Single type check
+		switch tokenType {
 		case TypeMachine:
-			machineCtx := ExtractMachineContext(claims)
+			machineCtx := &MachineContext{
+				ApplicationID:      GetApplicationID(claims),
+				ServicePrincipalID: GetServicePrincipalID(claims),
+				Roles:              claims.Roles,
+				Identity:           GetIdentity(claims),
+			}
 			c.Set(string(ContextKeyMachineCtx), machineCtx)
 			c.Set(string(ContextKeyIdentity), machineCtx.Identity)
 		case TypeUser:
 			// Create user-specific context using proper UserContext struct
 			userCtx := &UserContext{
-				ID:       GetPrincipalID(claims), // Use new function
-				Type:     "unknown",              // EPFL-specific type determination moved to epfl package
+				ID:       GetPrincipalID(claims),
+				Type:     "unknown", // EPFL-specific type determination moved to epfl package
 				Email:    claims.Email,
 				Groups:   claims.Groups,
 				TenantID: claims.TenantID,

@@ -68,20 +68,17 @@ type CachedKey struct {
 	ExpiresAt       time.Time
 }
 
-// Validate validates the unified claims structure and its contents
+// Validate validates application-specific claim requirements.
+// Note: JWT time claims (exp, nbf, iat) are validated automatically by the JWT library.
 func (u UnifiedClaims) Validate() error {
-	// Basic identifier validation - at least one must be present
+	// Validate at least one identifier exists
 	if u.UniqueID == "" && u.Subject == "" && len(u.Audience) == 0 {
 		return NewValidationError(ErrMissingIdentifier, "claims validation", "uniqueid/sub/aud")
 	}
 
-	// Note: UniqueID validation is handled by EPFL-specific package if needed
-	// The core package no longer validates UniqueID format
-
 	// Validate email format if present
 	if u.Email != "" {
-		matched, _ := regexp.MatchString(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`, u.Email)
-		if !matched {
+		if !isValidEmail(u.Email) {
 			return NewValidationError(
 				fmt.Errorf("%w: %s", ErrInvalidEmail, u.Email),
 				"claims validation",
@@ -90,32 +87,14 @@ func (u UnifiedClaims) Validate() error {
 		}
 	}
 
-	// Validate JWT registered claims
-	if u.ExpiresAt != nil && u.ExpiresAt.Time.Before(time.Now()) {
-		return NewValidationError(
-			fmt.Errorf("%w at %v", ErrTokenExpired, u.ExpiresAt.Time),
-			"claims validation",
-			"exp",
-		)
-	}
-
-	if u.NotBefore != nil && u.NotBefore.Time.After(time.Now()) {
-		return NewValidationError(
-			fmt.Errorf("%w before %v", ErrTokenNotYetValid, u.NotBefore.Time),
-			"claims validation",
-			"nbf",
-		)
-	}
-
-	if u.IssuedAt != nil && u.IssuedAt.Time.After(time.Now()) {
-		return NewValidationError(
-			fmt.Errorf("%w at %v", ErrTokenIssuedFuture, u.IssuedAt.Time),
-			"claims validation",
-			"iat",
-		)
-	}
-
 	return nil
+}
+
+// isValidEmail checks if the email format is valid
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+
+func isValidEmail(email string) bool {
+	return emailRegex.MatchString(email)
 }
 
 // parseJWTHeader parses the JWT header part without validation

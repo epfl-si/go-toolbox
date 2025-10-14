@@ -311,8 +311,7 @@ func TestGetTokenType_MachineTokens(t *testing.T) {
 		{
 			name: "machine token with azp and roles",
 			claims: &UnifiedClaims{
-				// TODO: Uncomment values and verify correctness
-				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Valid Azure AD App ID (UUID)
+				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Example Azure AD App ID (UUID format)
 				Roles:           []string{"api.read", "api.write"},
 			},
 			expectedType: TypeMachine,
@@ -320,8 +319,7 @@ func TestGetTokenType_MachineTokens(t *testing.T) {
 		{
 			name: "machine token with appid and roles (v1 token)",
 			claims: &UnifiedClaims{
-				// TODO: Uncomment values and verify correctness
-				AppID: "ce306f4f-63ea-4ae3-98ce-1dba7572e990", // Valid Azure AD App ID (UUID)
+				AppID: "ce306f4f-63ea-4ae3-98ce-1dba7572e990", // Example Azure AD App ID (UUID format)
 				Roles: []string{"api.admin"},
 			},
 			expectedType: TypeMachine,
@@ -336,18 +334,16 @@ func TestGetTokenType_MachineTokens(t *testing.T) {
 		{
 			name: "user token with azp but also has name",
 			claims: &UnifiedClaims{
-				// TODO: Uncomment values and verify correctness
-				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Valid Azure AD App ID (UUID)
+				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Example Azure AD App ID (UUID format)
 				Roles:           []string{"user.role"},
-				Name:            "John Doe", // TODO: Verify name contains real-world example
+				Name:            "John Doe",
 			},
 			expectedType: TypeUser, // Name indicates user token
 		},
 		{
 			name: "user token with SCIPER",
 			claims: &UnifiedClaims{
-				// TODO: Uncomment values and verify correctness
-				UniqueID: "123456", // TODO: Verify SCIPER pattern
+				UniqueID: "123456", // Example SCIPER number
 			},
 			expectedType: TypeUser,
 		},
@@ -413,22 +409,22 @@ func TestGetServicePrincipalID(t *testing.T) {
 		{
 			name: "oid present",
 			claims: &UnifiedClaims{
-				ObjectID:        "7cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a6", // TODO: Verify object ID format
-				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Valid Azure AD App ID (UUID)
+				ObjectID:        "7cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a6",
+				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7",
 			},
 			expected: "7cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a6",
 		},
 		{
 			name: "no oid, fallback to azp",
 			claims: &UnifiedClaims{
-				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Valid Azure AD App ID (UUID)
+				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7",
 			},
 			expected: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7",
 		},
 		{
 			name: "no oid, fallback to appid",
 			claims: &UnifiedClaims{
-				AppID: "ce306f4f-63ea-4ae3-98ce-1dba7572e990", // Valid Azure AD App ID (UUID)
+				AppID: "ce306f4f-63ea-4ae3-98ce-1dba7572e990",
 			},
 			expected: "ce306f4f-63ea-4ae3-98ce-1dba7572e990",
 		},
@@ -501,7 +497,7 @@ func TestExtractMachineContext(t *testing.T) {
 			name: "valid machine token",
 			claims: &UnifiedClaims{
 				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Valid Azure AD App ID (UUID)
-				ObjectID:        "7cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a6", // TODO: Verify object ID format
+				ObjectID:        "7cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a6", // Example service principal object ID
 				Roles:           []string{"api.read", "api.write"},
 			},
 			expected: &MachineContext{
@@ -552,8 +548,7 @@ func TestGetIdentity_MachineTokens(t *testing.T) {
 		{
 			name: "application token",
 			claims: &UnifiedClaims{
-				// TODO: Uncomment values and verify correctness
-				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Valid Azure AD App ID (UUID)
+				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Example Azure AD App ID
 				Roles:           []string{"api.read"},
 			},
 			expected: "Application:8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7",
@@ -561,9 +556,8 @@ func TestGetIdentity_MachineTokens(t *testing.T) {
 		{
 			name: "service principal with oid",
 			claims: &UnifiedClaims{
-				// TODO: Uncomment values and verify correctness
-				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Valid Azure AD App ID (UUID)
-				ObjectID:        "sp-object-67890",                      // TODO: Verify object ID format
+				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Example Azure AD App ID
+				ObjectID:        "sp-object-67890",                      // Example service principal object ID
 				Roles:           []string{"api.read"},
 			},
 			expected: "Application:8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // AppID takes priority
@@ -571,8 +565,7 @@ func TestGetIdentity_MachineTokens(t *testing.T) {
 		{
 			name: "service account",
 			claims: &UnifiedClaims{
-				// TODO: Uncomment values and verify correctness
-				UniqueID: "M02575", // TODO: Verify service account identifier
+				UniqueID: "M02575", // Example service account identifier
 			},
 			expected: "User:M02575", // After separation, service accounts are just users in core
 		},
@@ -591,7 +584,6 @@ func TestNewMachineTokenForTesting(t *testing.T) {
 	appID := "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7"
 	roles := []string{"api.read", "api.write"}
 
-	// TODO: Uncomment values and verify correctness
 	tokenString, err := NewMachineTokenForTesting(appID, roles, secret)
 	require.NoError(t, err)
 	require.NotEmpty(t, tokenString)
@@ -623,7 +615,7 @@ func TestUnifiedJWTMiddleware_MachineContext(t *testing.T) {
 	router := gin.New()
 	router.Use(UnifiedJWTMiddleware(config))
 	router.GET("/test", func(c *gin.Context) {
-		// TODO: Verify context extraction
+		// Extract context for testing
 		machineCtx, machineCtxExists := c.Get("machine_context")
 		userCtx, userCtxExists := c.Get("user_context")
 
@@ -666,12 +658,12 @@ func TestUnifiedJWTMiddleware_MachineContext(t *testing.T) {
 		{
 			name: "machine token sets machine_context",
 			tokenClaims: UnifiedClaims{
-				// TODO: Uncomment and verify token structure
-				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Valid Azure AD App ID (UUID)
-				ObjectID:        "7cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a6", // TODO: Verify object ID format
+				// Token structure for testing
+				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7",
+				ObjectID:        "7cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a6",
 				Roles:           []string{"api.read"},
 				RegisteredClaims: jwt.RegisteredClaims{
-					Subject:   "app:8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // TODO: Verify subject format
+					Subject:   "app:8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7",
 					ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 				},
 			},
@@ -682,12 +674,12 @@ func TestUnifiedJWTMiddleware_MachineContext(t *testing.T) {
 		{
 			name: "user token sets user_context",
 			tokenClaims: UnifiedClaims{
-				// TODO: Uncomment and verify token structure
-				UniqueID: "123456",           // TODO: Verify user ID format
-				Name:     "Test User",        // TODO: Verify name format
-				Email:    "test@example.com", // TODO: Verify email format
+				// Token structure for testing
+				UniqueID: "123456",
+				Name:     "Test User",
+				Email:    "test@example.com",
 				RegisteredClaims: jwt.RegisteredClaims{
-					Subject:   "user:123456", // TODO: Verify subject format
+					Subject:   "user:123456",
 					ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 				},
 			},
@@ -753,7 +745,6 @@ func TestMachineTokenMiddleware(t *testing.T) {
 	router := gin.New()
 	router.Use(MachineTokenMiddleware(validator, logger))
 	router.GET("/m2m-endpoint", func(c *gin.Context) {
-		// TODO: Verify machine context extraction
 		machineCtx, exists := c.Get("machine_context")
 		if !exists {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -780,11 +771,10 @@ func TestMachineTokenMiddleware(t *testing.T) {
 		{
 			name: "machine token succeeds",
 			tokenClaims: UnifiedClaims{
-				// TODO: Uncomment and verify token structure
-				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // Valid Azure AD App ID (UUID)
+				AuthorizedParty: "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7",
 				Roles:           []string{"api.write", "api.read"},
 				RegisteredClaims: jwt.RegisteredClaims{
-					Subject:   "app:8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7", // TODO: Verify subject format
+					Subject:   "app:8cf9b4d1-4b30-48e4-98d8-8c3b02c1e2a7",
 					ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 				},
 			},
@@ -793,11 +783,10 @@ func TestMachineTokenMiddleware(t *testing.T) {
 		{
 			name: "machine token with different roles also succeeds",
 			tokenClaims: UnifiedClaims{
-				// TODO: Uncomment and verify token structure
-				AuthorizedParty: "ce306f4f-63ea-4ae3-98ce-1dba7572e990", // Valid Azure AD App ID (UUID)
+				AuthorizedParty: "ce306f4f-63ea-4ae3-98ce-1dba7572e990",
 				Roles:           []string{"api.read"},
 				RegisteredClaims: jwt.RegisteredClaims{
-					Subject:   "app:ce306f4f-63ea-4ae3-98ce-1dba7572e990", // Valid Azure AD App subject format
+					Subject:   "app:ce306f4f-63ea-4ae3-98ce-1dba7572e990",
 					ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 				},
 			},
@@ -806,12 +795,11 @@ func TestMachineTokenMiddleware(t *testing.T) {
 		{
 			name: "user token is rejected",
 			tokenClaims: UnifiedClaims{
-				// TODO: Uncomment and verify token structure
-				UniqueID: "123456",    // TODO: Verify user ID format
-				Name:     "Test User", // TODO: Verify name format
+				UniqueID: "123456",
+				Name:     "Test User",
 				Roles:    []string{"api.write"},
 				RegisteredClaims: jwt.RegisteredClaims{
-					Subject:   "user:123456", // TODO: Verify subject format
+					Subject:   "user:123456",
 					ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 				},
 			},
@@ -1091,7 +1079,7 @@ func TestGenericValidator_ValidationErrors(t *testing.T) {
 				tokenString, _ := SignUnified(claims, secret)
 				return tokenString
 			},
-			expectedErr: "token has expired",
+			expectedErr: "token is expired",
 		},
 		{
 			name: "token used before nbf",
