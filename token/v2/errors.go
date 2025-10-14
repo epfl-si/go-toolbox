@@ -8,7 +8,7 @@ import (
 // Structured error constants for programmatic error handling
 var (
 	// Validation errors
-	ErrTokenExpired      = errors.New("token has expired")
+	ErrTokenExpired      = errors.New("token is expired")
 	ErrTokenNotYetValid  = errors.New("token is not valid yet")
 	ErrTokenIssuedFuture = errors.New("token was issued in the future")
 	ErrInvalidSignature  = errors.New("invalid token signature")
@@ -41,6 +41,20 @@ var (
 	ErrUnexpectedMethod   = errors.New("unexpected signing method")
 )
 
+// Error Handling Guidelines:
+//
+// 1. Use ValidationError for all token validation failures
+//   - Allows structured error handling by callers
+//   - Provides context and field information
+//
+// 2. Use plain errors for configuration/programming errors
+//   - These should not happen in production
+//   - Examples: nil validator, missing config
+//
+// 3. Always wrap sentinel errors with NewValidationError
+//   - Preserves error identity for errors.Is()
+//   - Adds context for debugging
+//
 // ValidationError wraps an error with additional context for better error handling
 type ValidationError struct {
 	Err     error  // The underlying error
