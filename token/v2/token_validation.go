@@ -210,6 +210,9 @@ type JWKSValidator struct {
 }
 
 // NewJWKSValidator creates a new JWKS validator
+// Deprecated: Use NewJWKSValidatorWithClient instead. This function will be removed in v3.0.0.
+// Migration: Replace NewJWKSValidator(baseURL, tenantID, cacheTTL, logger) with
+// NewJWKSValidatorWithClient(baseURL, tenantID, cacheTTL, logger, nil, Config{})
 func NewJWKSValidator(baseURL, tenantID string, cacheTTL time.Duration, logger *zap.Logger) *JWKSValidator {
 	return NewJWKSValidatorWithClient(baseURL, tenantID, cacheTTL, logger, nil, Config{})
 }
@@ -502,12 +505,15 @@ func (v *ChainedValidator) ValidateToken(tokenString string) (*UnifiedClaims, er
 	return nil, lastErr
 }
 
-// GetPrincipalID returns the primary identifier for the token's subject.
-// This works for both user tokens and machine tokens:
-// - For user tokens: UniqueID (SCIPER/service account) or Subject
-// - For machine tokens: Subject or first Audience
-// - Returns empty string if no identifier found
-func GetPrincipalID(claims *UnifiedClaims) string {
+// GetSubjectID returns the subject identifier from the token.
+// This follows JWT conventions and returns the most appropriate identifier
+// based on token type:
+//
+// - User tokens: UniqueID → Subject → PreferredUsername → Email
+// - Machine tokens: Subject → AppID → Audience[0]
+//
+// Returns empty string if no identifier is found.
+func GetSubjectID(claims *UnifiedClaims) string {
 	// Priority 1: UniqueID (EPFL-specific: SCIPER or service account)
 	if claims.UniqueID != "" {
 		return claims.UniqueID
@@ -521,6 +527,12 @@ func GetPrincipalID(claims *UnifiedClaims) string {
 		return claims.Audience[0]
 	}
 	return ""
+}
+
+// GetPrincipalID returns the primary identifier for the token's subject.
+// Deprecated: Use GetSubjectID instead. This function will be removed in v3.0.0.
+func GetPrincipalID(claims *UnifiedClaims) string {
+	return GetSubjectID(claims)
 }
 
 // getJwks fetches JWKS with timeout support

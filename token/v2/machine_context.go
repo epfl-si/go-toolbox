@@ -13,7 +13,7 @@ type MachineContext struct {
 // ExtractMachineContext extracts machine-specific context from unified claims.
 // Returns nil if the token is not a machine token.
 func ExtractMachineContext(claims *UnifiedClaims) *MachineContext {
-	if !IsMachineToken(claims) {
+	if GetTokenType(claims) != TypeMachine {
 		return nil
 	}
 
