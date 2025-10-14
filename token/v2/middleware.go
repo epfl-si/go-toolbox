@@ -46,6 +46,8 @@ type MiddlewareConfig struct {
 }
 
 // DefaultMiddlewareConfig returns default middleware configuration
+// Deprecated: Construct MiddlewareConfig directly. This function will be removed in v3.0.0.
+// Migration: Replace DefaultMiddlewareConfig(validator, logger) with MiddlewareConfig{Validator: validator, Logger: logger}
 func DefaultMiddlewareConfig(validator TokenValidator, logger *zap.Logger) MiddlewareConfig {
 	return MiddlewareConfig{
 		Validator:  validator,
@@ -94,7 +96,7 @@ func UnifiedJWTMiddleware(config MiddlewareConfig) gin.HandlerFunc {
 		}
 
 		config.Logger.Debug("Token validation successful",
-			zap.String("principal_id", GetPrincipalID(claims)),
+			zap.String("subject_id", GetSubjectID(claims)),
 			zap.Duration("duration", duration))
 
 		// Set unified claims and user info in context
@@ -115,7 +117,7 @@ func UnifiedJWTMiddleware(config MiddlewareConfig) gin.HandlerFunc {
 		case TypeUser:
 			// Create user-specific context using proper UserContext struct
 			userCtx := &UserContext{
-				ID:       GetPrincipalID(claims),
+				ID:       GetSubjectID(claims),
 				Type:     "unknown", // EPFL-specific type determination moved to epfl package
 				Email:    claims.Email,
 				Groups:   claims.Groups,
@@ -132,6 +134,25 @@ func UnifiedJWTMiddleware(config MiddlewareConfig) gin.HandlerFunc {
 // NewEntraMiddleware creates a pre-configured Gin middleware for validating tokens.
 // It sets up a GenericValidator that handles both Entra ID tokens (via JWKS) and
 // locally-issued tokens (via HMAC). This is a convenient constructor for a common use case.
+//
+// Deprecated: This function will be removed in v3.0.0. For more explicit and configurable
+// validation, create a validator and middleware directly:
+//
+//	config := token.Config{
+//		JWKSConfig: &token.JWKSConfig{
+//			BaseURL:     "https://login.microsoftonline.com",
+//			KeyCacheTTL: 5 * time.Minute,
+//		},
+//		Secret: hmacSecret,
+//	}
+//	validator, err := token.NewGenericValidator(config, logger)
+//	if err != nil {
+//		return err
+//	}
+//	middleware := token.UnifiedJWTMiddleware(token.MiddlewareConfig{
+//		Validator: validator,
+//		Logger:    logger,
+//	})
 func NewEntraMiddleware(hmacSecret []byte, logger *zap.Logger) (gin.HandlerFunc, error) {
 	config := Config{
 		Method: SigningPublicKey,
@@ -156,7 +177,13 @@ func MachineTokenMiddleware(validator TokenValidator, logger *zap.Logger) gin.Ha
 		logger = zap.NewNop()
 	}
 
-	middlewareConfig := DefaultMiddlewareConfig(validator, logger)
+	// Create middleware config directly instead of using deprecated DefaultMiddlewareConfig
+	middlewareConfig := MiddlewareConfig{
+		Validator:  validator,
+		Logger:     logger,
+		ContextKey: string(ContextKeyClaims),
+		HeaderName: "Authorization",
+	}
 
 	return func(c *gin.Context) {
 		// Extract token from Authorization header
@@ -180,9 +207,10 @@ func MachineTokenMiddleware(validator TokenValidator, logger *zap.Logger) gin.Ha
 		}
 
 		// Check if token is a machine token
-		if !IsMachineToken(claims) {
+		tokenType := GetTokenType(claims)
+		if tokenType != TypeMachine {
 			logger.Debug("Token is not a machine token",
-				zap.String("token_type", string(GetTokenType(claims))))
+				zap.String("token_type", string(tokenType)))
 			c.JSON(http.StatusForbidden, gin.H{
 				"error": "machine token required", // Clear, lowercase message
 			})

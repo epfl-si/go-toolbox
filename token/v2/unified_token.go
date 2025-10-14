@@ -41,11 +41,13 @@ func GetTokenType(claims *UnifiedClaims) Type {
 }
 
 // IsMachineToken returns true if this is a machine-to-machine token
+// Deprecated: Compare GetTokenType(claims) == TypeMachine directly. This function will be removed in v3.0.0.
 func IsMachineToken(claims *UnifiedClaims) bool {
 	return GetTokenType(claims) == TypeMachine
 }
 
 // IsUserToken returns true if this is a user token
+// Deprecated: Compare GetTokenType(claims) == TypeUser directly. This function will be removed in v3.0.0.
 func IsUserToken(claims *UnifiedClaims) bool {
 	return GetTokenType(claims) == TypeUser
 }
@@ -117,15 +119,19 @@ func HasRole(claims *UnifiedClaims, role string) bool {
 // HasApplicationRole checks if a machine token has a specific application role.
 // Returns false for user tokens or if the role is not present.
 // This is safer than using HasRole() directly as it validates token type first.
+// Deprecated: Use GetTokenType(claims) == TypeMachine && HasRole(claims, role) instead.
+// This function will be removed in v3.0.0.
 func HasApplicationRole(claims *UnifiedClaims, role string) bool {
-	return IsMachineToken(claims) && HasRole(claims, role)
+	return GetTokenType(claims) == TypeMachine && HasRole(claims, role)
 }
 
 // HasUserRole checks if a user token has a specific role.
 // Returns false for machine tokens or if the role is not present.
 // This provides symmetry with HasApplicationRole for type-safe role checking.
+// Deprecated: Use GetTokenType(claims) == TypeUser && HasRole(claims, role) instead.
+// This function will be removed in v3.0.0.
 func HasUserRole(claims *UnifiedClaims, role string) bool {
-	return IsUserToken(claims) && HasRole(claims, role)
+	return GetTokenType(claims) == TypeUser && HasRole(claims, role)
 }
 
 // Unit represents an EPFL organizational unit with its hierarchy information
