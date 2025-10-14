@@ -18,12 +18,26 @@ func (p Permission) Equals(other Permission) bool {
 	return p.Resource == other.Resource && p.Action == other.Action
 }
 
-// Common permissions that can be used across the application
+// Common permissions that can be used across applications
 var (
 	// Application permissions
-	AppCreate = Permission{Resource: "app", Action: "create"}
-	AppRead   = Permission{Resource: "app", Action: "read"}
-	AppModify = Permission{Resource: "app", Action: "modify"}
-	AppDelete = Permission{Resource: "app", Action: "delete"}
 	AppAdmin  = Permission{Resource: "app", Action: "admin"}
+	AppCreate = Permission{Resource: "app", Action: "create"}
+	AppDelete = Permission{Resource: "app", Action: "delete"}
+	AppManage = Permission{Resource: "app", Action: "manage"}
+	AppModify = Permission{Resource: "app", Action: "modify"}
+	AppRead   = Permission{Resource: "app", Action: "read"}
+	AppWrite  = Permission{Resource: "app", Action: "write"}
+
+	// Secret permissions
+	SecretRead  = Permission{Resource: "secret", Action: "read"}
+	SecretWrite = Permission{Resource: "secret", Action: "write"}
+
+	// System permissions
+	SystemRead  = Permission{Resource: "system", Action: "read"}
+	SystemAdmin = Permission{Resource: "system", Action: "admin"}
+
+	// Unit permissions
+	UnitRead  = Permission{Resource: "unit", Action: "read"}
+	UnitWrite = Permission{Resource: "unit", Action: "write"}
 )
