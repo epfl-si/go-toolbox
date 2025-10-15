@@ -552,7 +552,7 @@ func TestSetAuthContext(t *testing.T) {
 	SetAuthContext(c, userCtx)
 
 	// Verify it's set in Gin context
-	val, exists := c.Get(string(GinAuthContextKey))
+	val, exists := c.Get(string(AuthContextKey))
 	assert.True(t, exists)
 	assert.Equal(t, userCtx, val)
 
@@ -572,7 +572,7 @@ func TestGetResourceContext(t *testing.T) {
 	}
 
 	// Set resource context
-	c.Set(string(GinResourceContextKey), resource)
+	c.Set(string(ResourceContextKey), resource)
 
 	// Retrieve
 	retrieved, exists := GetResourceContext(c)

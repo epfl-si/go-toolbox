@@ -8,15 +8,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// GinContextKey is the key used to store values in Gin context
-type GinContextKey string
-
-const (
-	// GinAuthContextKey is the key for auth context in Gin
-	GinAuthContextKey GinContextKey = "auth_context"
-	// GinResourceContextKey is the key for resource context in Gin
-	GinResourceContextKey GinContextKey = "resource_context"
-)
+// Context key management: We use simple string constants from context.go for both
+// gin.Context and context.Context storage. This works because both systems ultimately
+// use strings as keys, eliminating the need for separate typed keys and conversions.
 
 // RequireRole creates a middleware that requires a specific role
 func RequireRole(role string, authorizer Authorizer, log *zap.Logger) gin.HandlerFunc {
@@ -121,7 +115,7 @@ func RequirePermission(
 		}
 
 		// Store resource context for later use
-		c.Set(string(GinResourceContextKey), resource)
+		c.Set(string(ResourceContextKey), resource)
 
 		// 4. Check authorization
 		authorized, err := authorizer.HasPermission(c.Request.Context(), authCtx, permission, resource)
@@ -216,7 +210,7 @@ func RequireAnyPermission(
 		}
 
 		// Store resource context for later use
-		c.Set(string(GinResourceContextKey), resource)
+		c.Set(string(ResourceContextKey), resource)
 
 		// Check if user has any of the required permissions
 		for _, permission := range permissions {
@@ -263,7 +257,7 @@ func RequireAnyPermission(
 // GetAuthContext extracts the auth context from Gin context
 func GetAuthContext(c *gin.Context) (AuthContext, error) {
 	// Try to get from our key first
-	if val, exists := c.Get(string(GinAuthContextKey)); exists {
+	if val, exists := c.Get(string(AuthContextKey)); exists {
 		if authCtx, ok := val.(AuthContext); ok {
 			return authCtx, nil
 		}
@@ -279,7 +273,7 @@ func GetAuthContext(c *gin.Context) (AuthContext, error) {
 
 // SetAuthContext sets the auth context in Gin context
 func SetAuthContext(c *gin.Context, authCtx AuthContext) {
-	c.Set(string(GinAuthContextKey), authCtx)
+	c.Set(string(AuthContextKey), authCtx)
 	// Also set in request context for compatibility
 	ctx := WithAuthContext(c.Request.Context(), authCtx)
 	c.Request = c.Request.WithContext(ctx)
@@ -287,7 +281,7 @@ func SetAuthContext(c *gin.Context, authCtx AuthContext) {
 
 // GetResourceContext extracts the resource context from Gin context
 func GetResourceContext(c *gin.Context) (ResourceContext, bool) {
-	if val, exists := c.Get(string(GinResourceContextKey)); exists {
+	if val, exists := c.Get(string(ResourceContextKey)); exists {
 		if resCtx, ok := val.(ResourceContext); ok {
 			return resCtx, true
 		}

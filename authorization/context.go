@@ -2,6 +2,20 @@ package authorization
 
 import "context"
 
+// ContextKey is the type for context keys to satisfy linter requirements.
+// Use string(key) conversion when using with gin.Context.Set/Get.
+type ContextKey string
+
+// Context key constants for storing values in both context.Context and gin.Context.
+// These constants work directly with context.Context, but require string() conversion
+// for gin.Context operations (e.g., c.Set(string(AuthContextKey), value)).
+const (
+	// AuthContextKey is the key for storing auth context in context
+	AuthContextKey ContextKey = "auth_context"
+	// ResourceContextKey is the key for storing resource context in context
+	ResourceContextKey ContextKey = "resource_context"
+)
+
 // AuthContext represents either a user or machine identity
 type AuthContext interface {
 	GetIdentifier() string // UniqueID for users, ServicePrincipalID for machines
@@ -127,16 +141,6 @@ func (r ResourceContext) Clone() ResourceContext {
 	}
 	return clone
 }
-
-// ContextKey is the type for context keys
-type ContextKey string
-
-const (
-	// AuthContextKey is the key for storing auth context in context
-	AuthContextKey ContextKey = "auth_context"
-	// ResourceContextKey is the key for storing resource context in context
-	ResourceContextKey ContextKey = "resource_context"
-)
 
 // WithAuthContext adds an auth context to the context
 func WithAuthContext(ctx context.Context, authCtx AuthContext) context.Context {
