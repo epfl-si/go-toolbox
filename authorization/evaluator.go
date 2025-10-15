@@ -181,10 +181,20 @@ func (e *PolicyEvaluator) evaluateMachine(authCtx AuthContext, permission Permis
 			for _, machineUnit := range machineUnits {
 				if machineUnit == unitID {
 					unitMatched = true
+					e.log.Debug("Unit matched! Checking roles for unit-scoped permissions",
+						zap.String("identifier", authCtx.GetIdentifier()),
+						zap.String("matchedUnit", unitID),
+						zap.Strings("roles", roles),
+						zap.Strings("groupRoles", groupRoles))
 					// Machine is authorized for this unit
 					allRoles := append(roles, groupRoles...)
 					for _, role := range allRoles {
-						if e.hasUnitScopedPermission(role, permission) {
+						hasPermission := e.hasUnitScopedPermission(role, permission)
+						e.log.Debug("Checking role for unit-scoped permission",
+							zap.String("role", role),
+							zap.String("permission", permission.String()),
+							zap.Bool("hasPermission", hasPermission))
+						if hasPermission {
 							reason := fmt.Sprintf("machine_unit_match_%s", role)
 							e.log.Debug("Machine permission granted via unit match",
 								zap.String("identifier", authCtx.GetIdentifier()),
@@ -197,6 +207,10 @@ func (e *PolicyEvaluator) evaluateMachine(authCtx AuthContext, permission Permis
 							return true, reason
 						}
 					}
+					e.log.Debug("Unit matched but no role has unit-scoped permission",
+						zap.String("identifier", authCtx.GetIdentifier()),
+						zap.Strings("allRoles", allRoles),
+						zap.String("permission", permission.String()))
 				}
 			}
 
@@ -213,6 +227,27 @@ func (e *PolicyEvaluator) evaluateMachine(authCtx AuthContext, permission Permis
 				)
 				return false, reason
 			}
+
+			// If unit matched but no role granted permission, we should deny here
+			if unitMatched {
+				reason := fmt.Sprintf("machine_unit_match_no_permission_%s", unitID)
+				e.log.Debug("Machine permission denied - unit matched but no role has permission",
+					zap.String("identifier", authCtx.GetIdentifier()),
+					zap.String("client_id", authCtx.GetClientID()),
+					zap.String("permission", permission.String()),
+					zap.String("unit", unitID),
+					zap.Strings("roles", roles),
+					zap.Strings("groupRoles", groupRoles),
+					zap.String("reason", reason),
+				)
+				return false, reason
+			}
+
+			// Fall through means machineUnits is empty after split
+			e.log.Debug("Machine has machineUnits field but it resulted in empty array after split",
+				zap.String("identifier", authCtx.GetIdentifier()),
+				zap.String("machineUnitsStr", machineUnitsStr),
+				zap.Int("machineUnitsCount", len(machineUnits)))
 		}
 
 		// Resource is unit-scoped but no machine units available - deny without checking global permissions
