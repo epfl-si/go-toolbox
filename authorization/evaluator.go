@@ -143,6 +143,17 @@ func (e *PolicyEvaluator) evaluateUser(authCtx AuthContext, permission Permissio
 
 // evaluateMachine evaluates permissions for service principals
 func (e *PolicyEvaluator) evaluateMachine(authCtx AuthContext, permission Permission, resource ResourceContext) (bool, string) {
+	// Log incoming resource context for debugging
+	resourceKeys := make([]string, 0, len(resource))
+	for k := range resource {
+		resourceKeys = append(resourceKeys, k)
+	}
+	e.log.Debug("Evaluator: received resource context",
+		zap.String("identifier", authCtx.GetIdentifier()),
+		zap.Strings("keys", resourceKeys),
+		zap.String("machineUnits", resource["machineUnits"]),
+		zap.String("unitID", resource["unitID"]))
+
 	// Get roles for the machine
 	roles := authCtx.GetRoles()
 
