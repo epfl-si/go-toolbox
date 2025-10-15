@@ -131,45 +131,6 @@ func UnifiedJWTMiddleware(config MiddlewareConfig) gin.HandlerFunc {
 	}
 }
 
-// NewEntraMiddleware creates a pre-configured Gin middleware for validating tokens.
-// It sets up a GenericValidator that handles both Entra ID tokens (via JWKS) and
-// locally-issued tokens (via HMAC). This is a convenient constructor for a common use case.
-//
-// Deprecated: This function will be removed in v3.0.0. For more explicit and configurable
-// validation, create a validator and middleware directly:
-//
-//	config := token.Config{
-//		JWKSConfig: &token.JWKSConfig{
-//			BaseURL:     "https://login.microsoftonline.com",
-//			KeyCacheTTL: 5 * time.Minute,
-//		},
-//		Secret: hmacSecret,
-//	}
-//	validator, err := token.NewGenericValidator(config, logger)
-//	if err != nil {
-//		return err
-//	}
-//	middleware := token.UnifiedJWTMiddleware(token.MiddlewareConfig{
-//		Validator: validator,
-//		Logger:    logger,
-//	})
-func NewEntraMiddleware(hmacSecret []byte, logger *zap.Logger) (gin.HandlerFunc, error) {
-	config := Config{
-		Method: SigningPublicKey,
-		JWKSConfig: &JWKSConfig{
-			BaseURL:     "https://login.microsoftonline.com",
-			KeyCacheTTL: 5 * time.Minute,
-		},
-		Secret: hmacSecret,
-	}
-	validator, err := NewGenericValidator(config, logger)
-	if err != nil {
-		return nil, err
-	}
-	middlewareConfig := DefaultMiddlewareConfig(validator, logger)
-	return UnifiedJWTMiddleware(middlewareConfig), nil
-}
-
 // MachineTokenMiddleware creates a middleware that validates machine tokens
 // and requires the token to be a machine token.
 func MachineTokenMiddleware(validator TokenValidator, logger *zap.Logger) gin.HandlerFunc {
