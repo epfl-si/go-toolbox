@@ -164,7 +164,17 @@ func (e *PolicyEvaluator) evaluateMachine(authCtx AuthContext, permission Permis
 	// Unit-scoped resources MUST be checked first to prevent global permission bypass
 	if unitID, ok := resource["unitID"]; ok {
 		// Get machine units from resource context (populated by MachineUnitResolver)
+		machineUnitsVal, existsInMap := resource["machineUnits"]
+		e.log.Debug("Checking machineUnits condition",
+			zap.Bool("key_exists", existsInMap),
+			zap.String("value", machineUnitsVal),
+			zap.Bool("value_not_empty", machineUnitsVal != ""),
+			zap.String("identifier", authCtx.GetIdentifier()))
+
 		if machineUnitsStr, ok := resource["machineUnits"]; ok && machineUnitsStr != "" {
+			e.log.Debug("Inside machineUnits if block",
+				zap.String("machineUnitsStr", machineUnitsStr),
+				zap.String("identifier", authCtx.GetIdentifier()))
 			// Parse comma-separated units
 			machineUnits := strings.Split(machineUnitsStr, ",")
 			unitMatched := false
