@@ -816,6 +816,126 @@ func (e *TenantEnhancer) Name() string {
    )
    ```
 
+## Unit-Scoped Access
+
+Unit-scoped access is an important security feature that ensures users and services can only access resources belonging to their authorized organizational units. This creates effective isolation boundaries between different departments or teams.
+
+### How Unit-Scoped Access Works
+
+#### Definition and Resolution
+
+1. **Unit Definition**
+   - **For Users**: Units are explicitly defined in the `UserAuthContext` and come directly from authentication tokens
+   - **For M2M (Services)**: Units are resolved dynamically through a `ResourceEnhancer` that populates a `machineUnits` field in the `ResourceContext`
+
+2. **Permission Evaluation Process**
+   - The system first checks if a resource has a `unitID` field in the `ResourceContext`
+   - If present, this triggers unit-scoped permission evaluation with the following priority:
+     1. Check if the user/machine has access to the specific unit
+     2. If yes, check if their roles grant unit-scoped permissions
+     3. If no, deny access **even if they have global permissions**
+
+3. **Unit-Scoped vs. Global Permissions**
+   - Unit-scoped permissions are defined separately from global permissions
+   - They allow for more fine-grained control, where users might have certain capabilities only within their units
+   - **Critical Security Feature**: Global permissions cannot bypass unit scoping
+
+### M2M Unit Resolution
+
+For machine-to-machine authentication, unit resolution works differently than for users:
+
+1. **Resource Enhancer Mechanism**
+   - Since M2M tokens don't inherently contain unit information, a `ResourceEnhancer` dynamically resolves units
+   - The enhancer adds a comma-separated `machineUnits` field to the `ResourceContext`
+   - The system then checks if the resource's unit is in this list
+
+2. **Implementation Options**
+   - **Static Mapping**: Use `NewMachineUnitEnhancer` with a predefined mapping of client IDs to units
+   ```go
+   machineEnhancer := enhancers.NewMachineUnitEnhancer(
+       map[string][]string{
+           "client-123": {"unit-456", "unit-789"},
+       },
+       log,
+   )
+   ```
+   
+   - **Dynamic Resolution**: Use `NewDynamicMachineUnitEnhancer` with a function that looks up units
+   ```go
+   dynamicEnhancer := enhancers.NewDynamicMachineUnitEnhancer(
+       func(ctx context.Context, clientID string) ([]string, error) {
+           return fetchUnitsForClient(clientID)
+       },
+       log,
+   )
+   ```
+
+3. **Unit-Scoped M2M Authorization Flow**
+   - M2M client makes request with its token
+   - System extracts client ID from token
+   - Resource enhancer resolves authorized units for this client
+   - System checks if resource's unitID is in the authorized units
+   - If matching, checks if the client's roles grant unit-scoped permissions
+
+### Defining Unit-Scoped Permissions
+
+Unlike global permissions which are defined in the configuration, unit-scoped permissions are defined directly in the authorization evaluator code:
+
+```go
+// From evaluator.go
+func (e *PolicyEvaluator) hasUnitScopedPermission(role string, permission Permission) bool {
+    // Unit-scoped permissions are defined here
+    unitScopedRoles := map[string][]Permission{
+        "admin": {
+            // Admins have full access to unit-scoped resources
+            {Resource: "app", Action: "read"},
+            {Resource: "app", Action: "write"},
+            {Resource: "app", Action: "delete"},
+            {Resource: "app", Action: "manage"},
+            {Resource: "secret", Action: "read"},
+            {Resource: "secret", Action: "write"},
+        },
+        "app.admin": {
+            // App admins have full access to unit-scoped resources
+            {Resource: "app", Action: "read"},
+            {Resource: "app", Action: "write"},
+            {Resource: "app", Action: "delete"},
+            {Resource: "app", Action: "manage"},
+            {Resource: "secret", Action: "read"},
+            {Resource: "secret", Action: "write"},
+        },
+        "app.creator": {
+            {Resource: "app", Action: "write"},
+            {Resource: "secret", Action: "write"},
+        },
+    }
+    
+    if permissions, ok := unitScopedRoles[role]; ok {
+        for _, p := range permissions {
+            if p.Equals(permission) {
+                return true
+            }
+        }
+    }
+    
+    return false
+}
+```
+
+Key points about unit-scoped permission definition:
+
+1. **Separate Definition**: Unit-scoped permissions are defined separately from global permissions
+2. **Role-Based Structure**: They're organized by role, with each role having a list of allowed unit-scoped permissions
+3. **Hard-Coded by Design**: This separates the security-critical unit boundary logic from configuration, which helps prevent misconfiguration
+4. **Customization**: To customize unit-scoped permissions, you would need to modify this function or create a custom evaluator
+
+### Security Considerations
+
+- Unit-scoped access is a critical security boundary that prevents privilege escalation
+- Even users/services with global permissions cannot access resources in units they don't belong to
+- This creates effective isolation between different organizational units
+- The system enforces unit scope checks before checking global permissions
+
 ### 7. Testing Authorization
 
 ```go

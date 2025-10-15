@@ -302,8 +302,13 @@ func (e *PolicyEvaluator) hasUnitScopedPermission(role string, permission Permis
 			{Resource: "secret", Action: "write"},
 		},
 		"app.creator": {
+			{Resource: "app", Action: "read"},
 			{Resource: "app", Action: "write"},
 			{Resource: "secret", Action: "write"},
+		},
+		"service.principal": {
+			// Service principals can read apps in their unit
+			{Resource: "app", Action: "read"},
 		},
 	}
 
