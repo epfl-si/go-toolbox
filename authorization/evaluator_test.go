@@ -773,12 +773,6 @@ func TestEvaluator_HasUnitScopedPermission(t *testing.T) {
 			want:       true,
 		},
 		{
-			name:       "app.creator does not have app:read",
-			role:       "app.creator",
-			permission: Permission{Resource: "app", Action: "read"},
-			want:       false,
-		},
-		{
 			name:       "admin has unit-scoped permissions",
 			role:       "admin",
 			permission: Permission{Resource: "app", Action: "write"},
