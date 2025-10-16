@@ -1,0 +1,31 @@
+# authorization.yaml
+
+# Fait le lien entre les groupes de l'annuaire (AD) et les rôles internes de l'application.
+groupMappings:
+  "APP-PORTAL-ADMINS-PROD":
+    - "admin"
+  "APP-PORTAL-READERS-PROD":
+    - "readonly"
+  "APP-CREATORS-DEPT-A":
+    - "app.creator"
+
+# Définit les permissions accordées par chaque rôle.
+rolePermissions:
+  "admin":
+    - { resource: "system", action: "admin" }
+    - { resource: "app", action: "read" }
+    - { resource: "app", action: "write" }
+    - { resource: "app", action: "delete" }
+    - { resource: "app", action: "admin" }
+    - { resource: "unit", action: "read" }
+    - { resource: "unit", action: "write" }
+    - { resource: "unit", action: "admin" }
+
+  "readonly":
+    - { resource: "app", action: "read" }
+    - { resource: "unit", action: "read" }
+
+  "app.creator":
+    - { resource: "app", action: "read" }
+    - { resource: "app", action: "write" }
+    - { resource: "secret", action: "write" } # Uniquement dans le périmètre de ses unités
