@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Config holds authorization configuration
@@ -21,7 +25,7 @@ func NewConfig() *Config {
 	}
 }
 
-// LoadFromFile loads configuration from a JSON file
+// LoadFromFile loads configuration from a JSON or YAML file based on file extension
 func (c *Config) LoadFromFile(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
@@ -29,11 +33,23 @@ func (c *Config) LoadFromFile(path string) error {
 	}
 	defer file.Close()
 
-	return c.LoadFromReader(file)
+	// Detect file extension to determine parser
+	ext := strings.ToLower(filepath.Ext(path))
+	if ext == ".yaml" || ext == ".yml" {
+		return c.LoadFromYAMLReader(file)
+	}
+	// Default to JSON for all other extensions
+	return c.LoadFromJSONReader(file)
 }
 
-// LoadFromReader loads configuration from an io.Reader
+// LoadFromReader is kept for backward compatibility
+// It defaults to JSON parsing
 func (c *Config) LoadFromReader(r io.Reader) error {
+	return c.LoadFromJSONReader(r)
+}
+
+// LoadFromJSONReader loads configuration from an io.Reader containing JSON data
+func (c *Config) LoadFromJSONReader(r io.Reader) error {
 	// Temporary structure for JSON parsing
 	type jsonConfig struct {
 		RolePermissions map[string][]struct {
@@ -45,7 +61,7 @@ func (c *Config) LoadFromReader(r io.Reader) error {
 
 	var jc jsonConfig
 	if err := json.NewDecoder(r).Decode(&jc); err != nil {
-		return fmt.Errorf("failed to decode config: %w", err)
+		return fmt.Errorf("failed to decode JSON config: %w", err)
 	}
 
 	// Convert JSON permissions to Permission objects
@@ -62,6 +78,47 @@ func (c *Config) LoadFromReader(r io.Reader) error {
 	}
 
 	c.GroupMappings = jc.GroupMappings
+	return nil
+}
+
+// LoadFromYAMLReader loads configuration from an io.Reader containing YAML data
+func (c *Config) LoadFromYAMLReader(r io.Reader) error {
+	// Temporary structure for YAML parsing
+	type yamlConfig struct {
+		RolePermissions map[string][]struct {
+			Resource string `yaml:"resource"`
+			Action   string `yaml:"action"`
+		} `yaml:"rolePermissions"`
+		GroupMappings map[string][]string `yaml:"groupMappings"`
+	}
+
+	var yc yamlConfig
+
+	// Read all content from reader
+	content, err := io.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("failed to read YAML content: %w", err)
+	}
+
+	// Decode YAML
+	if err := yaml.Unmarshal(content, &yc); err != nil {
+		return fmt.Errorf("failed to decode YAML config: %w", err)
+	}
+
+	// Convert YAML permissions to Permission objects
+	c.RolePermissions = make(map[string][]Permission)
+	for role, perms := range yc.RolePermissions {
+		var permissions []Permission
+		for _, p := range perms {
+			permissions = append(permissions, Permission{
+				Resource: p.Resource,
+				Action:   p.Action,
+			})
+		}
+		c.RolePermissions[role] = permissions
+	}
+
+	c.GroupMappings = yc.GroupMappings
 	return nil
 }
 

@@ -10,7 +10,7 @@ import (
 )
 
 // ============================================================================
-// 1.1 Config Loading Tests
+// Config Loading Tests
 // ============================================================================
 
 func TestConfig_LoadFromFile_ValidConfig(t *testing.T) {
@@ -72,7 +72,7 @@ func TestConfig_LoadFromReader_InvalidJSON(t *testing.T) {
 
 	err := config.LoadFromReader(reader)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to decode config")
+	assert.Contains(t, err.Error(), "failed to decode JSON config")
 }
 
 func TestConfig_LoadFromReader_ValidJSON(t *testing.T) {
@@ -167,7 +167,259 @@ func TestConfig_LoadFromReader_ValidJSON(t *testing.T) {
 }
 
 // ============================================================================
-// 1.2 Role Permission Checks
+// YAML Config Loading Tests
+// ============================================================================
+
+func TestConfig_LoadFromFile_ValidYAMLConfig(t *testing.T) {
+	// Create a temporary YAML config file with valid structure
+	configYAML := `
+# Test YAML Configuration
+rolePermissions:
+  admin:
+    - resource: app
+      action: read
+    - resource: app
+      action: write
+  readonly:
+    - resource: app
+      action: read
+groupMappings:
+  APP-ADMINS:
+    - admin
+  APP-READERS:
+    - readonly
+`
+	// Create temp file
+	tmpFile, err := os.CreateTemp("", "config-*.yaml")
+	require.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	_, err = tmpFile.WriteString(configYAML)
+	require.NoError(t, err)
+	tmpFile.Close()
+
+	// Load config from file
+	config := NewConfig()
+	err = config.LoadFromFile(tmpFile.Name())
+	require.NoError(t, err)
+
+	// Verify RolePermissions are correctly parsed
+	assert.Contains(t, config.RolePermissions, "admin")
+	assert.Contains(t, config.RolePermissions, "readonly")
+	assert.Len(t, config.RolePermissions["admin"], 2)
+	assert.Len(t, config.RolePermissions["readonly"], 1)
+
+	// Verify GroupMappings are correctly parsed
+	assert.Contains(t, config.GroupMappings, "APP-ADMINS")
+	assert.Contains(t, config.GroupMappings, "APP-READERS")
+	assert.Equal(t, []string{"admin"}, config.GroupMappings["APP-ADMINS"])
+	assert.Equal(t, []string{"readonly"}, config.GroupMappings["APP-READERS"])
+}
+
+func TestConfig_LoadFromYAMLReader_InvalidYAML(t *testing.T) {
+	config := NewConfig()
+	invalidYAML := `
+rolePermissions:
+  admin: [invalid yaml]
+`
+	reader := strings.NewReader(invalidYAML)
+
+	err := config.LoadFromYAMLReader(reader)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to decode YAML")
+}
+
+func TestConfig_LoadFromYAMLReader_ValidYAML(t *testing.T) {
+	tests := []struct {
+		name        string
+		yamlInput   string
+		wantErr     bool
+		checkRoles  map[string]bool
+		checkGroups map[string][]string
+	}{
+		{
+			name: "valid config with admin role",
+			yamlInput: `
+rolePermissions:
+  admin:
+    - resource: app
+      action: read
+    - resource: app
+      action: write
+groupMappings:
+  APP-ADMINS:
+    - admin
+`,
+			wantErr: false,
+			checkRoles: map[string]bool{
+				"admin": true,
+			},
+			checkGroups: map[string][]string{
+				"APP-ADMINS": {"admin"},
+			},
+		},
+		{
+			name: "multiple roles and groups",
+			yamlInput: `
+rolePermissions:
+  admin:
+    - resource: system
+      action: admin
+  readonly:
+    - resource: app
+      action: read
+groupMappings:
+  ADMINS:
+    - admin
+  READERS:
+    - readonly
+`,
+			wantErr: false,
+			checkRoles: map[string]bool{
+				"admin":    true,
+				"readonly": true,
+			},
+			checkGroups: map[string][]string{
+				"ADMINS":  {"admin"},
+				"READERS": {"readonly"},
+			},
+		},
+		{
+			name: "empty config",
+			yamlInput: `
+rolePermissions: {}
+groupMappings: {}
+`,
+			wantErr:     false,
+			checkRoles:  map[string]bool{},
+			checkGroups: map[string][]string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := NewConfig()
+			reader := strings.NewReader(tt.yamlInput)
+			err := config.LoadFromYAMLReader(reader)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			// Check roles exist
+			for role := range tt.checkRoles {
+				_, exists := config.RolePermissions[role]
+				assert.True(t, exists, "Role %s should exist", role)
+			}
+
+			// Check group mappings
+			for group, expectedRoles := range tt.checkGroups {
+				actualRoles := config.GetRolesForGroup(group)
+				assert.ElementsMatch(t, expectedRoles, actualRoles)
+			}
+		})
+	}
+}
+
+func TestConfig_FileExtensionDetection(t *testing.T) {
+	// Test JSON extension detection
+	jsonConfig := `{
+		"rolePermissions": {
+			"admin": [
+				{"resource": "app", "action": "read"}
+			]
+		},
+		"groupMappings": {
+			"ADMINS": ["admin"]
+		}
+	}`
+
+	yamlConfig := `
+rolePermissions:
+  admin:
+    - resource: app
+      action: read
+groupMappings:
+  ADMINS:
+    - admin
+`
+
+	tests := []struct {
+		name       string
+		extension  string
+		content    string
+		wantErr    bool
+		skipTest   bool
+		skipReason string
+	}{
+		{
+			name:      "JSON extension",
+			extension: ".json",
+			content:   jsonConfig,
+			wantErr:   false,
+		},
+		{
+			name:      "YAML extension",
+			extension: ".yaml",
+			content:   yamlConfig,
+			wantErr:   false,
+		},
+		{
+			name:      "YML extension",
+			extension: ".yml",
+			content:   yamlConfig,
+			wantErr:   false,
+		},
+		{
+			name:       "JSON content with YAML extension",
+			extension:  ".yaml",
+			content:    jsonConfig,
+			wantErr:    false,
+			skipTest:   false,
+			skipReason: "YAML is a superset of JSON, so JSON content can be parsed as YAML",
+		},
+		{
+			name:      "YAML content with JSON extension should error",
+			extension: ".json",
+			content:   yamlConfig,
+			wantErr:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipTest {
+				t.Skip(tt.skipReason)
+			}
+
+			// Create temp file with specific extension
+			tmpFile, err := os.CreateTemp("", "config-*"+tt.extension)
+			require.NoError(t, err)
+			defer os.Remove(tmpFile.Name())
+
+			_, err = tmpFile.WriteString(tt.content)
+			require.NoError(t, err)
+			tmpFile.Close()
+
+			config := NewConfig()
+			err = config.LoadFromFile(tmpFile.Name())
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Contains(t, config.RolePermissions, "admin")
+				assert.Contains(t, config.GroupMappings, "ADMINS")
+			}
+		})
+	}
+}
+
+// ============================================================================
+// Role Permission Checks
 // ============================================================================
 
 func TestConfig_HasRolePermission_RoleExists(t *testing.T) {
@@ -251,7 +503,7 @@ func TestConfig_HasRolePermission_RoleNotExists(t *testing.T) {
 }
 
 // ============================================================================
-// 1.3 Group to Role Mapping
+// Group to Role Mapping
 // ============================================================================
 
 func TestConfig_GetRolesForGroup_SingleRole(t *testing.T) {
