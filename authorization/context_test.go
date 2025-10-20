@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // ============================================================================
@@ -190,11 +191,12 @@ func TestMachineAuthContext_GetUnits(t *testing.T) {
 	// Machines should always return empty units
 	machineCtx := &MachineAuthContext{
 		ServicePrincipalID: "sp-123",
+		AllowedUnits:       []string{"unit1"},
 	}
 
 	got := machineCtx.GetUnits()
-	assert.Empty(t, got, "MachineAuthContext should always return empty units")
-	assert.NotNil(t, got, "MachineAuthContext should return non-nil slice")
+	require.NotNil(t, got, "MachineAuthContext should return non-nil slice")
+	assert.NotEmpty(t, got, "MachineAuthContext should return non empty units")
 }
 
 func TestMachineAuthContext_GetRoles(t *testing.T) {

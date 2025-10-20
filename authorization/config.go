@@ -15,6 +15,7 @@ import (
 type Config struct {
 	RolePermissions map[string][]Permission // Maps roles to the permissions they grant
 	GroupMappings   map[string][]string     // Maps AD groups to internal roles
+	MachineUnits    map[string][]string     // Maps client IDs to allowed unit IDs
 }
 
 // NewConfig creates a new authorization config with defaults
@@ -22,6 +23,7 @@ func NewConfig() *Config {
 	return &Config{
 		RolePermissions: make(map[string][]Permission),
 		GroupMappings:   make(map[string][]string),
+		MachineUnits:    make(map[string][]string),
 	}
 }
 
@@ -57,6 +59,7 @@ func (c *Config) LoadFromJSONReader(r io.Reader) error {
 			Action   string `json:"action"`
 		} `json:"rolePermissions"`
 		GroupMappings map[string][]string `json:"groupMappings"`
+		MachineUnits  map[string][]string `json:"machineUnits"`
 	}
 
 	var jc jsonConfig
@@ -78,6 +81,7 @@ func (c *Config) LoadFromJSONReader(r io.Reader) error {
 	}
 
 	c.GroupMappings = jc.GroupMappings
+	c.MachineUnits = jc.MachineUnits // Store machine units
 	return nil
 }
 
@@ -90,6 +94,7 @@ func (c *Config) LoadFromYAMLReader(r io.Reader) error {
 			Action   string `yaml:"action"`
 		} `yaml:"rolePermissions"`
 		GroupMappings map[string][]string `yaml:"groupMappings"`
+		MachineUnits  map[string][]string `yaml:"machineUnits"` // Machine-to-unit mappings
 	}
 
 	var yc yamlConfig
@@ -119,6 +124,7 @@ func (c *Config) LoadFromYAMLReader(r io.Reader) error {
 	}
 
 	c.GroupMappings = yc.GroupMappings
+	c.MachineUnits = yc.MachineUnits
 	return nil
 }
 

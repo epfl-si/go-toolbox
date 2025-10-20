@@ -21,7 +21,7 @@ type AuthContext interface {
 	GetIdentifier() string // UniqueID for users, ServicePrincipalID for machines
 	GetClientID() string
 	GetGroups() []string // AD groups for users, app roles for machines
-	GetUnits() []string  // Empty for machines
+	GetUnits() []string  // Organization units for both users and machines
 	IsUser() bool
 	IsMachine() bool
 	GetRoles() []string // Internal roles (derived from groups for users, direct for machines)
@@ -77,6 +77,7 @@ type MachineAuthContext struct {
 	ClientID           string
 	Groups             []string // App roles for machines
 	Roles              []string // Direct roles from token
+	AllowedUnits       []string // Allowed organizational units
 }
 
 // GetIdentifier returns the service principal ID
@@ -94,9 +95,9 @@ func (m *MachineAuthContext) GetGroups() []string {
 	return m.Groups
 }
 
-// GetUnits returns empty slice for machines
+// GetUnits returns the machine's allowed units
 func (m *MachineAuthContext) GetUnits() []string {
-	return []string{}
+	return m.AllowedUnits
 }
 
 // IsUser returns false for machine contexts
