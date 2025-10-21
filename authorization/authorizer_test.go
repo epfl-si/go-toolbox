@@ -290,7 +290,33 @@ func TestNewSimpleAuthorizer_CustomInputs(t *testing.T) {
 // ============================================================================
 
 func TestSimpleAuthorizer_Integration_UserFlow(t *testing.T) {
-	config := GetDefaultConfig()
+	// Create a custom config for this test to ensure app.creator doesn't have global app:write
+	config := &Config{
+		GroupMappings: map[string][]string{
+			"APP-PORTAL-ADMINS-PROD":  {"admin"},
+			"APP-PORTAL-READERS-PROD": {"readonly"},
+			"APP-CREATORS-DEPT-A":     {"app.creator"},
+		},
+		RolePermissions: map[string][]Permission{
+			"admin": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "app", Action: "delete"},
+				{Resource: "app", Action: "manage"},
+			},
+			"readonly": {
+				{Resource: "app", Action: "read"},
+			},
+			// app.creator has no global app:write permission
+		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+			},
+		},
+	}
+
 	evaluator := NewPolicyEvaluator(config, nil)
 	authorizer := NewSimpleAuthorizer(evaluator, nil)
 
@@ -322,7 +348,7 @@ func TestSimpleAuthorizer_Integration_UserFlow(t *testing.T) {
 			wantAuth:   false,
 		},
 		{
-			name: "app.creator can write with matching unit",
+			name: "app.creator can write with matching unit via unit-scoped permission",
 			userCtx: &UserAuthContext{
 				UniqueID: "creator-user",
 				Groups:   []string{"APP-CREATORS-DEPT-A"},
@@ -335,7 +361,7 @@ func TestSimpleAuthorizer_Integration_UserFlow(t *testing.T) {
 			wantAuth: true,
 		},
 		{
-			name: "app.creator cannot write with wrong unit",
+			name: "app.creator cannot write with wrong unit when no global permission",
 			userCtx: &UserAuthContext{
 				UniqueID: "creator-user",
 				Groups:   []string{"APP-CREATORS-DEPT-A"},
@@ -359,7 +385,22 @@ func TestSimpleAuthorizer_Integration_UserFlow(t *testing.T) {
 }
 
 func TestSimpleAuthorizer_Integration_MachineFlow(t *testing.T) {
-	config := GetDefaultConfig()
+	// Create a custom config for this test to ensure app.creator doesn't have global app:write
+	config := &Config{
+		RolePermissions: map[string][]Permission{
+			"service.principal": {
+				{Resource: "app", Action: "read"},
+			},
+			// app.creator has no global app:write permission
+		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+			},
+		},
+	}
+
 	evaluator := NewPolicyEvaluator(config, nil)
 	authorizer := NewSimpleAuthorizer(evaluator, nil)
 
@@ -381,7 +422,7 @@ func TestSimpleAuthorizer_Integration_MachineFlow(t *testing.T) {
 			wantAuth:   true,
 		},
 		{
-			name: "machine with unit access can write",
+			name: "machine with unit access can write via unit-scoped permission",
 			machineCtx: &MachineAuthContext{
 				ServicePrincipalID: "sp-2",
 				Roles:              []string{"app.creator"},
@@ -395,7 +436,7 @@ func TestSimpleAuthorizer_Integration_MachineFlow(t *testing.T) {
 			wantAuth: true,
 		},
 		{
-			name: "machine without unit access cannot write",
+			name: "machine without unit access cannot write when no global permission",
 			machineCtx: &MachineAuthContext{
 				ServicePrincipalID: "sp-3",
 				Roles:              []string{"app.creator"},

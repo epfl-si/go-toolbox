@@ -81,8 +81,22 @@ func (e *PolicyEvaluator) evaluateUser(authCtx AuthContext, permission Permissio
 	// Get roles from AD groups using the group-to-role mapping
 	roles := e.getRolesFromGroups(authCtx.GetGroups())
 
-	// PRIORITY 1: Check unit-based permissions if resource has unitID
-	// Unit-scoped resources MUST be checked first to prevent global permission bypass
+	// PRIORITY 1: Check global role permissions first (global bypass)
+	// This allows users with global permissions to access any resource regardless of unit
+	for _, role := range roles {
+		if e.config.HasRolePermission(role, permission) {
+			reason := fmt.Sprintf("user_global_role_bypass_%s", role)
+			e.log.Debug("User permission granted via global role bypass",
+				zap.String("identifier", authCtx.GetIdentifier()),
+				zap.String("permission", permission.String()),
+				zap.String("role", role),
+				zap.String("reason", reason),
+			)
+			return true, reason
+		}
+	}
+
+	// PRIORITY 2: Check unit-based permissions if resource has unitID
 	if unitID, ok := resource["unitID"]; ok {
 		userUnits := authCtx.GetUnits()
 		for _, userUnit := range userUnits {
@@ -105,7 +119,7 @@ func (e *PolicyEvaluator) evaluateUser(authCtx AuthContext, permission Permissio
 			}
 		}
 
-		// Resource is unit-scoped but user doesn't have unit access - deny without checking global permissions
+		// Resource is unit-scoped but user doesn't have unit access
 		reason := fmt.Sprintf("user_unit_mismatch_required_%s", unitID)
 		e.log.Debug("User permission denied - unit scope required",
 			zap.String("identifier", authCtx.GetIdentifier()),
@@ -117,20 +131,8 @@ func (e *PolicyEvaluator) evaluateUser(authCtx AuthContext, permission Permissio
 		return false, reason
 	}
 
-	// PRIORITY 2: Check global role permissions (only for non-unit-scoped resources)
-	for _, role := range roles {
-		if e.config.HasRolePermission(role, permission) {
-			reason := fmt.Sprintf("user_role_%s", role)
-			e.log.Debug("User permission granted",
-				zap.String("identifier", authCtx.GetIdentifier()),
-				zap.String("permission", permission.String()),
-				zap.String("role", role),
-				zap.String("reason", reason),
-			)
-			return true, reason
-		}
-	}
-
+	// PRIORITY 3: For non-unit-scoped resources, we've already checked global permissions above
+	// If we get here, the user doesn't have the required permission
 	reason := "user_not_authorized"
 	e.log.Debug("User permission denied",
 		zap.String("identifier", authCtx.GetIdentifier()),
@@ -160,8 +162,37 @@ func (e *PolicyEvaluator) evaluateMachine(authCtx AuthContext, permission Permis
 	// Also check groups for machines (app roles)
 	groupRoles := e.getRolesFromGroups(authCtx.GetGroups())
 
-	// PRIORITY 1: Check unit-based permissions if resource has unitID
-	// Unit-scoped resources MUST be checked first to prevent global permission bypass
+	// PRIORITY 1: Check global role permissions first (global bypass)
+	// This allows machines with global permissions to access any resource regardless of unit
+	for _, role := range roles {
+		if e.config.HasRolePermission(role, permission) {
+			reason := fmt.Sprintf("machine_global_role_bypass_%s", role)
+			e.log.Debug("Machine permission granted via global role bypass",
+				zap.String("identifier", authCtx.GetIdentifier()),
+				zap.String("client_id", authCtx.GetClientID()),
+				zap.String("permission", permission.String()),
+				zap.String("role", role),
+				zap.String("reason", reason),
+			)
+			return true, reason
+		}
+	}
+
+	for _, role := range groupRoles {
+		if e.config.HasRolePermission(role, permission) {
+			reason := fmt.Sprintf("machine_global_group_role_bypass_%s", role)
+			e.log.Debug("Machine permission granted via global group role bypass",
+				zap.String("identifier", authCtx.GetIdentifier()),
+				zap.String("client_id", authCtx.GetClientID()),
+				zap.String("permission", permission.String()),
+				zap.String("role", role),
+				zap.String("reason", reason),
+			)
+			return true, reason
+		}
+	}
+
+	// PRIORITY 2: Check unit-based permissions if resource has unitID
 	if unitID, ok := resource["unitID"]; ok {
 		// Get machine units from resource context (populated by MachineUnitResolver)
 		machineUnitsVal, existsInMap := resource["machineUnits"]
@@ -262,34 +293,8 @@ func (e *PolicyEvaluator) evaluateMachine(authCtx AuthContext, permission Permis
 		return false, reason
 	}
 
-	// PRIORITY 2: Check global role permissions (only for non-unit-scoped resources)
-	for _, role := range roles {
-		if e.config.HasRolePermission(role, permission) {
-			reason := fmt.Sprintf("machine_role_%s", role)
-			e.log.Debug("Machine permission granted",
-				zap.String("identifier", authCtx.GetIdentifier()),
-				zap.String("client_id", authCtx.GetClientID()),
-				zap.String("permission", permission.String()),
-				zap.String("role", role),
-				zap.String("reason", reason),
-			)
-			return true, reason
-		}
-	}
-
-	for _, role := range groupRoles {
-		if e.config.HasRolePermission(role, permission) {
-			reason := fmt.Sprintf("machine_group_role_%s", role)
-			e.log.Debug("Machine permission granted via group",
-				zap.String("identifier", authCtx.GetIdentifier()),
-				zap.String("client_id", authCtx.GetClientID()),
-				zap.String("permission", permission.String()),
-				zap.String("role", role),
-				zap.String("reason", reason),
-			)
-			return true, reason
-		}
-	}
+	// PRIORITY 3: For non-unit-scoped resources, we've already checked global permissions above
+	// If we get here, the machine doesn't have the required permission
 
 	reason := "machine_not_authorized"
 	e.log.Debug("Machine permission denied",
