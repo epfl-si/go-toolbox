@@ -16,6 +16,7 @@ type Config struct {
 	RolePermissions map[string][]Permission // Maps roles to the permissions they grant
 	GroupMappings   map[string][]string     // Maps AD groups to internal roles
 	MachineUnits    map[string][]string     // Maps client IDs to allowed unit IDs
+	UnitScopedRoles map[string][]Permission // Maps roles to unit-scoped permissions
 }
 
 // NewConfig creates a new authorization config with defaults
@@ -24,6 +25,7 @@ func NewConfig() *Config {
 		RolePermissions: make(map[string][]Permission),
 		GroupMappings:   make(map[string][]string),
 		MachineUnits:    make(map[string][]string),
+		UnitScopedRoles: make(map[string][]Permission),
 	}
 }
 
@@ -58,8 +60,12 @@ func (c *Config) LoadFromJSONReader(r io.Reader) error {
 			Resource string `json:"resource"`
 			Action   string `json:"action"`
 		} `json:"rolePermissions"`
-		GroupMappings map[string][]string `json:"groupMappings"`
-		MachineUnits  map[string][]string `json:"machineUnits"`
+		GroupMappings   map[string][]string `json:"groupMappings"`
+		MachineUnits    map[string][]string `json:"machineUnits"`
+		UnitScopedRoles map[string][]struct {
+			Resource string `json:"resource"`
+			Action   string `json:"action"`
+		} `json:"unitScopedRoles"`
 	}
 
 	var jc jsonConfig
@@ -82,6 +88,20 @@ func (c *Config) LoadFromJSONReader(r io.Reader) error {
 
 	c.GroupMappings = jc.GroupMappings
 	c.MachineUnits = jc.MachineUnits // Store machine units
+
+	// Parse unit-scoped roles
+	c.UnitScopedRoles = make(map[string][]Permission)
+	for role, perms := range jc.UnitScopedRoles {
+		var permissions []Permission
+		for _, p := range perms {
+			permissions = append(permissions, Permission{
+				Resource: p.Resource,
+				Action:   p.Action,
+			})
+		}
+		c.UnitScopedRoles[role] = permissions
+	}
+
 	return nil
 }
 
@@ -93,8 +113,12 @@ func (c *Config) LoadFromYAMLReader(r io.Reader) error {
 			Resource string `yaml:"resource"`
 			Action   string `yaml:"action"`
 		} `yaml:"rolePermissions"`
-		GroupMappings map[string][]string `yaml:"groupMappings"`
-		MachineUnits  map[string][]string `yaml:"machineUnits"` // Machine-to-unit mappings
+		GroupMappings   map[string][]string `yaml:"groupMappings"`
+		MachineUnits    map[string][]string `yaml:"machineUnits"` // Machine-to-unit mappings
+		UnitScopedRoles map[string][]struct {
+			Resource string `yaml:"resource"`
+			Action   string `yaml:"action"`
+		} `yaml:"unitScopedRoles"`
 	}
 
 	var yc yamlConfig
@@ -125,6 +149,20 @@ func (c *Config) LoadFromYAMLReader(r io.Reader) error {
 
 	c.GroupMappings = yc.GroupMappings
 	c.MachineUnits = yc.MachineUnits
+
+	// Parse unit-scoped roles
+	c.UnitScopedRoles = make(map[string][]Permission)
+	for role, perms := range yc.UnitScopedRoles {
+		var permissions []Permission
+		for _, p := range perms {
+			permissions = append(permissions, Permission{
+				Resource: p.Resource,
+				Action:   p.Action,
+			})
+		}
+		c.UnitScopedRoles[role] = permissions
+	}
+
 	return nil
 }
 
@@ -187,7 +225,42 @@ func GetDefaultConfig() *Config {
 				{Resource: "secret", Action: "read"},
 			},
 		},
+		UnitScopedRoles: map[string][]Permission{
+			"unit.admin": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "app", Action: "delete"},
+				{Resource: "app", Action: "manage"},
+				{Resource: "secret", Action: "read"},
+				{Resource: "secret", Action: "write"},
+			},
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
+			},
+			"service.principal": {
+				{Resource: "app", Action: "read"},
+			},
+		},
 	}
+}
+
+// HasUnitScopedPermission checks if a role has unit-scoped permissions
+// This is used when resources have a unitID to restrict access to users/machines
+// that belong to the same unit AND have the appropriate role.
+func (c *Config) HasUnitScopedPermission(role string, permission Permission) bool {
+	permissions, exists := c.UnitScopedRoles[role]
+	if !exists {
+		return false
+	}
+
+	for _, p := range permissions {
+		if p.Equals(permission) {
+			return true
+		}
+	}
+	return false
 }
 
 // HasRolePermission checks if a role has a specific permission

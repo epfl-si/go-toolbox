@@ -268,6 +268,13 @@ func TestEvaluator_User_UnitScoped_MatchingUnit(t *testing.T) {
 				{Resource: "app", Action: "write"},
 			},
 		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
+			},
+		},
 	}
 
 	evaluator := NewPolicyEvaluator(config, nil)
@@ -327,6 +334,13 @@ func TestEvaluator_User_UnitScoped_NoMatchingUnit(t *testing.T) {
 				{Resource: "app", Action: "write"},
 			},
 		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
+			},
+		},
 	}
 
 	evaluator := NewPolicyEvaluator(config, nil)
@@ -354,6 +368,13 @@ func TestEvaluator_User_UnitScoped_MultipleUnits(t *testing.T) {
 		RolePermissions: map[string][]Permission{
 			"app.creator": {
 				{Resource: "app", Action: "write"},
+			},
+		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
 			},
 		},
 	}
@@ -388,6 +409,16 @@ func TestEvaluator_User_UnitScoped_GlobalPermissionDoesNotBypass(t *testing.T) {
 				{Resource: "app", Action: "delete"},
 			},
 		},
+		UnitScopedRoles: map[string][]Permission{
+			"admin": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "app", Action: "delete"},
+				{Resource: "app", Action: "manage"},
+				{Resource: "secret", Action: "read"},
+				{Resource: "secret", Action: "write"},
+			},
+		},
 	}
 
 	evaluator := NewPolicyEvaluator(config, nil)
@@ -419,6 +450,9 @@ func TestEvaluator_User_UnitScoped_NoUnitScopedPermission(t *testing.T) {
 			"readonly": {
 				{Resource: "app", Action: "read"},
 			},
+		},
+		UnitScopedRoles: map[string][]Permission{
+			// readonly role has no unit-scoped permissions
 		},
 	}
 
@@ -545,6 +579,13 @@ func TestEvaluator_Machine_UnitScoped_WithResolver_MatchingUnit(t *testing.T) {
 				{Resource: "app", Action: "write"},
 			},
 		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
+			},
+		},
 	}
 
 	evaluator := NewPolicyEvaluator(config, nil)
@@ -573,6 +614,13 @@ func TestEvaluator_Machine_UnitScoped_WithResolver_NoMatch(t *testing.T) {
 				{Resource: "app", Action: "write"},
 			},
 		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
+			},
+		},
 	}
 
 	evaluator := NewPolicyEvaluator(config, nil)
@@ -599,6 +647,13 @@ func TestEvaluator_Machine_UnitScoped_WithoutResolver(t *testing.T) {
 				{Resource: "app", Action: "write"},
 			},
 		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
+			},
+		},
 	}
 
 	evaluator := NewPolicyEvaluator(config, nil)
@@ -623,6 +678,13 @@ func TestEvaluator_Machine_UnitScoped_EmptyMachineUnits(t *testing.T) {
 		RolePermissions: map[string][]Permission{
 			"app.creator": {
 				{Resource: "app", Action: "write"},
+			},
+		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
 			},
 		},
 	}
@@ -652,6 +714,16 @@ func TestEvaluator_Machine_UnitScoped_GlobalPermissionDoesNotBypass(t *testing.T
 				{Resource: "app", Action: "read"},
 				{Resource: "app", Action: "write"},
 				{Resource: "app", Action: "delete"},
+			},
+		},
+		UnitScopedRoles: map[string][]Permission{
+			"admin": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "app", Action: "delete"},
+				{Resource: "app", Action: "manage"},
+				{Resource: "secret", Action: "read"},
+				{Resource: "secret", Action: "write"},
 			},
 		},
 	}
@@ -752,7 +824,28 @@ func TestEvaluator_GetRoles_Machine(t *testing.T) {
 }
 
 func TestEvaluator_HasUnitScopedPermission(t *testing.T) {
-	evaluator := NewPolicyEvaluator(nil, nil)
+	config := &Config{
+		UnitScopedRoles: map[string][]Permission{
+			"admin": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "app", Action: "delete"},
+				{Resource: "app", Action: "manage"},
+				{Resource: "secret", Action: "read"},
+				{Resource: "secret", Action: "write"},
+			},
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
+			},
+			"service.principal": {
+				{Resource: "app", Action: "read"},
+			},
+		},
+	}
+
+	evaluator := NewPolicyEvaluator(config, nil)
 
 	tests := []struct {
 		name       string

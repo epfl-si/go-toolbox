@@ -335,46 +335,7 @@ func (e *PolicyEvaluator) getRolesFromGroups(groups []string) []string {
 }
 
 // hasUnitScopedPermission checks if a role has unit-scoped permissions
+// It delegates to the Config to allow runtime configuration
 func (e *PolicyEvaluator) hasUnitScopedPermission(role string, permission Permission) bool {
-	// Special handling for unit-scoped permissions
-	// For example, "app.creator" role might have write access only to apps in their unit
-	unitScopedRoles := map[string][]Permission{
-		"admin": {
-			// Admins have full access to unit-scoped resources
-			{Resource: "app", Action: "read"},
-			{Resource: "app", Action: "write"},
-			{Resource: "app", Action: "delete"},
-			{Resource: "app", Action: "manage"},
-			{Resource: "secret", Action: "read"},
-			{Resource: "secret", Action: "write"},
-		},
-		"app.admin": {
-			// App admins have full access to unit-scoped resources
-			{Resource: "app", Action: "read"},
-			{Resource: "app", Action: "write"},
-			{Resource: "app", Action: "delete"},
-			{Resource: "app", Action: "manage"},
-			{Resource: "secret", Action: "read"},
-			{Resource: "secret", Action: "write"},
-		},
-		"app.creator": {
-			{Resource: "app", Action: "read"},
-			{Resource: "app", Action: "write"},
-			{Resource: "secret", Action: "write"},
-		},
-		"service.principal": {
-			// Service principals can read apps in their unit
-			{Resource: "app", Action: "read"},
-		},
-	}
-
-	if permissions, ok := unitScopedRoles[role]; ok {
-		for _, p := range permissions {
-			if p.Equals(permission) {
-				return true
-			}
-		}
-	}
-
-	return false
+	return e.config.HasUnitScopedPermission(role, permission)
 }

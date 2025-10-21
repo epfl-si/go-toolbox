@@ -20,6 +20,13 @@ func TestM2MUnitScopedPermissions_WithoutResolver(t *testing.T) {
 				// NOTE: 'app:write' is only unit-scoped, not global
 			},
 		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
+			},
+		},
 	}
 
 	m2mContext := &MachineAuthContext{
@@ -45,6 +52,13 @@ func TestM2MUnitScopedPermissions_WithResolver(t *testing.T) {
 				{Resource: "app", Action: "read"},
 				{Resource: "unit", Action: "read"},
 				// 'app:write' is unit-scoped only
+			},
+		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
 			},
 		},
 	}
@@ -100,6 +114,13 @@ func TestM2MUnitScopedPermissions_ConsistencyWithUser(t *testing.T) {
 				{Resource: "app", Action: "read"},
 			},
 		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
+			},
+		},
 	}
 
 	permission := Permission{Resource: "app", Action: "write"}
@@ -153,6 +174,16 @@ func TestGlobalPermissionDoesNotBypassUnitScoping(t *testing.T) {
 			"admin": {
 				{Resource: "app", Action: "read"},
 				{Resource: "app", Action: "write"}, // Global permission for app:write
+			},
+		},
+		UnitScopedRoles: map[string][]Permission{
+			"admin": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "app", Action: "delete"},
+				{Resource: "app", Action: "manage"},
+				{Resource: "secret", Action: "read"},
+				{Resource: "secret", Action: "write"},
 			},
 		},
 	}

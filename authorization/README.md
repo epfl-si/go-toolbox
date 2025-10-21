@@ -179,7 +179,7 @@ In the configuration each application map roles/groups/rights
        GroupMappings: map[string][]string{
            "APP-PORTAL-ADMINS": {
                "admin",
-               "app.admin",
+               "unit.admin",
            },
            "APP-PORTAL-READONLY": {
                "admin.readonly",
@@ -318,7 +318,7 @@ func loadAuthConfig() *authorization.Config {
         GroupMappings: map[string][]string{
             "APP-PORTAL-ADMINS": {
                 "admin",
-                "app.admin",
+                "unit.admin",
             },
             "APP-PORTAL-READONLY": {
                 "admin.readonly",
@@ -879,45 +879,56 @@ For machine-to-machine authentication, unit resolution works differently than fo
 
 ### Defining Unit-Scoped Permissions
 
-Unlike global permissions which are defined in the configuration, unit-scoped permissions are defined directly in the authorization evaluator code:
+Unit-scoped permissions are defined in the `unitScopedRoles` section of the configuration:
+
+```json
+{
+  "unitScopedRoles": {
+    "unit.admin": [
+      {"resource": "app", "action": "read"},
+      {"resource": "app", "action": "write"},
+      {"resource": "app", "action": "delete"},
+      {"resource": "app", "action": "manage"},
+      {"resource": "secret", "action": "read"},
+      {"resource": "secret", "action": "write"}
+    ],
+    "app.creator": [
+      {"resource": "app", "action": "read"},
+      {"resource": "app", "action": "write"},
+      {"resource": "secret", "action": "write"}
+    ],
+    "service.principal": [
+      {"resource": "app", "action": "read"}
+    ]
+  }
+}
+```
+
+The configuration is loaded into the `Config` struct:
 
 ```go
-// From evaluator.go
-func (e *PolicyEvaluator) hasUnitScopedPermission(role string, permission Permission) bool {
-    // Unit-scoped permissions are defined here
-    unitScopedRoles := map[string][]Permission{
-        "admin": {
-            // Admins have full access to unit-scoped resources
-            {Resource: "app", Action: "read"},
-            {Resource: "app", Action: "write"},
-            {Resource: "app", Action: "delete"},
-            {Resource: "app", Action: "manage"},
-            {Resource: "secret", Action: "read"},
-            {Resource: "secret", Action: "write"},
-        },
-        "app.admin": {
-            // App admins have full access to unit-scoped resources
-            {Resource: "app", Action: "read"},
-            {Resource: "app", Action: "write"},
-            {Resource: "app", Action: "delete"},
-            {Resource: "app", Action: "manage"},
-            {Resource: "secret", Action: "read"},
-            {Resource: "secret", Action: "write"},
-        },
-        "app.creator": {
-            {Resource: "app", Action: "write"},
-            {Resource: "secret", Action: "write"},
-        },
+type Config struct {
+    RolePermissions map[string][]Permission // Maps roles to the permissions they grant
+    GroupMappings   map[string][]string     // Maps AD groups to internal roles
+    MachineUnits    map[string][]string     // Maps client IDs to allowed unit IDs
+    UnitScopedRoles map[string][]Permission // Maps roles to unit-scoped permissions
+}
+```
+
+And the permissions are checked using the `HasUnitScopedPermission` method:
+
+```go
+func (c *Config) HasUnitScopedPermission(role string, permission Permission) bool {
+    permissions, exists := c.UnitScopedRoles[role]
+    if !exists {
+        return false
     }
-    
-    if permissions, ok := unitScopedRoles[role]; ok {
-        for _, p := range permissions {
-            if p.Equals(permission) {
-                return true
-            }
+
+    for _, p := range permissions {
+        if p.Equals(permission) {
+            return true
         }
     }
-    
     return false
 }
 ```
@@ -926,8 +937,9 @@ Key points about unit-scoped permission definition:
 
 1. **Separate Definition**: Unit-scoped permissions are defined separately from global permissions
 2. **Role-Based Structure**: They're organized by role, with each role having a list of allowed unit-scoped permissions
-3. **Hard-Coded by Design**: This separates the security-critical unit boundary logic from configuration, which helps prevent misconfiguration
-4. **Customization**: To customize unit-scoped permissions, you would need to modify this function or create a custom evaluator
+3. **Runtime Configuration**: Unit-scoped permissions can be modified without code changes
+4. **Customization**: To customize unit-scoped permissions, update the configuration file
+5. **Backward Compatibility**: Default values are provided if the configuration is missing
 
 ### Security Considerations
 
