@@ -640,6 +640,138 @@ func TestConfig_NewConfig(t *testing.T) {
 	assert.NotNil(t, config)
 	assert.NotNil(t, config.RolePermissions)
 	assert.NotNil(t, config.GroupMappings)
+	assert.NotNil(t, config.UnitScopedRoles)
 	assert.Empty(t, config.RolePermissions)
 	assert.Empty(t, config.GroupMappings)
+	assert.Empty(t, config.UnitScopedRoles)
+}
+
+func TestConfig_HasUnitScopedPermission(t *testing.T) {
+	config := &Config{
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+			},
+			"admin": {
+				{Resource: "app", Action: "delete"},
+			},
+		},
+	}
+
+	tests := []struct {
+		name       string
+		role       string
+		permission Permission
+		want       bool
+	}{
+		{
+			name:       "app.creator has app:write",
+			role:       "app.creator",
+			permission: Permission{Resource: "app", Action: "write"},
+			want:       true,
+		},
+		{
+			name:       "app.creator does not have app:delete",
+			role:       "app.creator",
+			permission: Permission{Resource: "app", Action: "delete"},
+			want:       false,
+		},
+		{
+			name:       "admin has app:delete",
+			role:       "admin",
+			permission: Permission{Resource: "app", Action: "delete"},
+			want:       true,
+		},
+		{
+			name:       "unknown role returns false",
+			role:       "unknown",
+			permission: Permission{Resource: "app", Action: "read"},
+			want:       false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := config.HasUnitScopedPermission(tt.role, tt.permission)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestConfig_LoadFromJSON_WithUnitScopedRoles(t *testing.T) {
+	jsonData := `{
+		"groupMappings": {
+			"TEST-GROUP": ["app.creator"]
+		},
+		"machineUnits": {},
+		"unitScopedRoles": {
+			"app.creator": [
+				{"resource": "app", "action": "write"}
+			]
+		},
+		"rolePermissions": {}
+	}`
+
+	config := NewConfig()
+	err := config.LoadFromJSONReader(strings.NewReader(jsonData))
+	assert.NoError(t, err)
+
+	// Verify unit-scoped roles were loaded
+	assert.Contains(t, config.UnitScopedRoles, "app.creator")
+	assert.Len(t, config.UnitScopedRoles["app.creator"], 1)
+	assert.True(t, config.HasUnitScopedPermission("app.creator", Permission{Resource: "app", Action: "write"}))
+}
+
+func TestConfig_LoadFromJSON_WithoutUnitScopedRoles_NoError(t *testing.T) {
+	// Test backward compatibility - old config without unitScopedRoles
+	jsonData := `{
+		"groupMappings": {"TEST-GROUP": ["app.creator"]},
+		"machineUnits": {},
+		"rolePermissions": {}
+	}`
+
+	config := NewConfig()
+	err := config.LoadFromJSONReader(strings.NewReader(jsonData))
+	assert.NoError(t, err)
+	assert.NotNil(t, config.UnitScopedRoles)
+	assert.Empty(t, config.UnitScopedRoles)
+}
+
+func TestConfig_LoadFromYAML_WithUnitScopedRoles(t *testing.T) {
+	yamlData := `
+groupMappings:
+  TEST-GROUP:
+    - app.creator
+machineUnits: {}
+unitScopedRoles:
+  app.creator:
+    - resource: app
+      action: write
+rolePermissions: {}
+`
+
+	config := NewConfig()
+	err := config.LoadFromYAMLReader(strings.NewReader(yamlData))
+	assert.NoError(t, err)
+
+	// Verify unit-scoped roles were loaded
+	assert.Contains(t, config.UnitScopedRoles, "app.creator")
+	assert.Len(t, config.UnitScopedRoles["app.creator"], 1)
+	assert.True(t, config.HasUnitScopedPermission("app.creator", Permission{Resource: "app", Action: "write"}))
+}
+
+func TestConfig_GetDefaultConfig_HasUnitScopedRoles(t *testing.T) {
+	config := GetDefaultConfig()
+
+	// Verify UnitScopedRoles are populated
+	assert.NotEmpty(t, config.UnitScopedRoles)
+	assert.Contains(t, config.UnitScopedRoles, "unit.admin")
+	assert.Contains(t, config.UnitScopedRoles, "app.creator")
+	assert.Contains(t, config.UnitScopedRoles, "service.principal")
+
+	// Check specific permissions
+	assert.True(t, config.HasUnitScopedPermission("unit.admin", Permission{Resource: "app", Action: "manage"}))
+	assert.True(t, config.HasUnitScopedPermission("app.creator", Permission{Resource: "app", Action: "write"}))
+	assert.True(t, config.HasUnitScopedPermission("service.principal", Permission{Resource: "app", Action: "read"}))
 }

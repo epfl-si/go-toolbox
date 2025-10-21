@@ -99,6 +99,13 @@ func TestSimpleAuthorizer_HasPermission_WithEnhancer(t *testing.T) {
 				{Resource: "app", Action: "write"},
 			},
 		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
+			},
+		},
 	}
 
 	evaluator := NewPolicyEvaluator(config, nil)
