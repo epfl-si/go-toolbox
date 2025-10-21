@@ -1,9 +1,11 @@
 package enhancers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/epfl-si/go-toolbox/authorization"
@@ -122,6 +124,7 @@ func NewSimpleBodyEnhancer(sourcePath, targetKey string) *BodyEnhancer {
 }
 
 // Enhance extracts data from the request body and adds it to the resource
+// This implementation preserves the request body for subsequent handlers
 func (e *BodyEnhancer) Enhance(ctx context.Context, resource authorization.ResourceContext) (authorization.ResourceContext, error) {
 	ginCtx, ok := authorization.GetGinContext(ctx)
 	if !ok {
@@ -130,28 +133,40 @@ func (e *BodyEnhancer) Enhance(ctx context.Context, resource authorization.Resou
 
 	result := resource.Clone()
 
-	// Get raw body data
-	var bodyData map[string]interface{}
-	if err := ginCtx.ShouldBindJSON(&bodyData); err != nil {
-		// If we can't parse the body, just return without error
-		// The body might have already been consumed or might be in a different format
-		return result, nil
-	}
+	// Save and restore the request body to allow it to be read again by handlers
+	if ginCtx.Request != nil && ginCtx.Request.Body != nil {
+		// Read the body
+		bodyBytes, err := io.ReadAll(ginCtx.Request.Body)
+		if err != nil {
+			// If we can't read the body, return without error
+			return result, nil
+		}
 
-	// Look for the value at any of the specified paths
-	for _, path := range e.sourcePaths {
-		value := e.extractValueFromPath(bodyData, path)
-		if value != nil {
-			// Convert value to string if possible
-			if strValue, ok := value.(string); ok {
-				result[e.targetKey] = strValue
-			} else {
-				// For non-string values, store as JSON string
-				if jsonBytes, err := json.Marshal(value); err == nil {
-					result[e.targetKey] = string(jsonBytes)
+		// Restore the body for subsequent readers
+		ginCtx.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		// Parse the body as JSON
+		var bodyData map[string]interface{}
+		if err := json.Unmarshal(bodyBytes, &bodyData); err != nil {
+			// If we can't parse the JSON, just return without error
+			return result, nil
+		}
+
+		// Look for the value at any of the specified paths
+		for _, path := range e.sourcePaths {
+			value := e.extractValueFromPath(bodyData, path)
+			if value != nil {
+				// Convert value to string if possible
+				if strValue, ok := value.(string); ok {
+					result[e.targetKey] = strValue
+				} else {
+					// For non-string values, store as JSON string
+					if jsonBytes, err := json.Marshal(value); err == nil {
+						result[e.targetKey] = string(jsonBytes)
+					}
 				}
+				break // Found a value, stop searching
 			}
-			break // Found a value, stop searching
 		}
 	}
 
