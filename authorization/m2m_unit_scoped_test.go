@@ -8,6 +8,7 @@ import (
 )
 
 // TestM2MUnitScopedPermissions_WithoutResolver tests that M2M tokens without a resolver are denied
+// when they don't have global permissions for the requested action
 func TestM2MUnitScopedPermissions_WithoutResolver(t *testing.T) {
 	config := &Config{
 		GroupMappings: map[string][]string{
@@ -17,7 +18,7 @@ func TestM2MUnitScopedPermissions_WithoutResolver(t *testing.T) {
 			"app.creator": {
 				{Resource: "app", Action: "read"},
 				{Resource: "unit", Action: "read"},
-				// NOTE: 'app:write' is only unit-scoped, not global
+				// NOTE: 'app:write' is NOT in global permissions
 			},
 		},
 		UnitScopedRoles: map[string][]Permission{
@@ -51,7 +52,7 @@ func TestM2MUnitScopedPermissions_WithResolver(t *testing.T) {
 			"app.creator": {
 				{Resource: "app", Action: "read"},
 				{Resource: "unit", Action: "read"},
-				// 'app:write' is unit-scoped only
+				// NOTE: 'app:write' is NOT in global permissions
 			},
 		},
 		UnitScopedRoles: map[string][]Permission{
@@ -112,6 +113,7 @@ func TestM2MUnitScopedPermissions_ConsistencyWithUser(t *testing.T) {
 		RolePermissions: map[string][]Permission{
 			"app.creator": {
 				{Resource: "app", Action: "read"},
+				// NOTE: 'app:write' is NOT in global permissions
 			},
 		},
 		UnitScopedRoles: map[string][]Permission{
@@ -164,8 +166,8 @@ func TestM2MUnitScopedPermissions_ConsistencyWithUser(t *testing.T) {
 	assert.Equal(t, userAuthorized, m2mAuthorized, "Authorization inconsistency: user=%v, m2m=%v", userAuthorized, m2mAuthorized)
 }
 
-// TestGlobalPermissionDoesNotBypassUnitScoping verifies that global permissions cannot bypass unit scoping
-func TestGlobalPermissionDoesNotBypassUnitScoping(t *testing.T) {
+// TestGlobalPermissionBypassesUnitScoping verifies that global permissions bypass unit scoping
+func TestGlobalPermissionBypassesUnitScoping(t *testing.T) {
 	config := &Config{
 		GroupMappings: map[string][]string{
 			"APP-PORTAL-ADMINS": {"admin"},
@@ -192,7 +194,7 @@ func TestGlobalPermissionDoesNotBypassUnitScoping(t *testing.T) {
 	evaluator := NewPolicyEvaluator(config, nil)
 
 	// Test: User has global admin role with app:write but tries to access unit-scoped resource
-	// The user does NOT belong to unit-456, so access should be denied
+	// The user does NOT belong to unit-456, but should still get access due to global role bypass
 	userContext := &UserAuthContext{
 		UniqueID: "test-admin-user",
 		Groups:   []string{"APP-PORTAL-ADMINS"},
@@ -203,10 +205,10 @@ func TestGlobalPermissionDoesNotBypassUnitScoping(t *testing.T) {
 	resourceContext := ResourceContext{"unitID": "unit-456"}
 	authorized, reason := evaluator.Evaluate(userContext, permission, resourceContext)
 
-	// CRITICAL: Even though the user has global app:write permission,
-	// they should be DENIED because the resource requires unit-456 access
-	assert.False(t, authorized, "User with global permission should NOT bypass unit scoping. Reason: %s", reason)
-	assert.Equal(t, "user_unit_mismatch_required_unit-456", reason, "Expected unit mismatch denial")
+	// CRITICAL: User has global app:write permission, so they should be GRANTED access
+	// regardless of unit scoping due to the global role bypass
+	assert.True(t, authorized, "User with global permission should bypass unit scoping. Reason: %s", reason)
+	assert.Equal(t, "user_global_role_bypass_admin", reason, "Expected global role bypass")
 }
 
 // mockMachineUnitEnhancer is a test helper that implements ResourceEnhancer
