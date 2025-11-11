@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -59,7 +60,7 @@ func LogOPDo(log *log.Logger, handlerID string, handledID string, crudt string, 
 	writer := bufio.NewWriter(file)
 
 	// Write the log
-	_, err = fmt.Fprintf(writer, "\"%s\";\"%s\";\"%s\";\"%s\";\"%s\"\n", handlerID, handledID, crudt, source, payload)
+	_, err = fmt.Fprintf(writer, "\"%s\";\"%s\";\"%s\";\"%s\";\"%s\"\n", time.Now().UTC().Format(time.RFC3339), handlerID, handledID, crudt, source, payload)
 	if err != nil {
 		log.Printf("failed writing to file: %s", err)
 		return
