@@ -7,23 +7,35 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 )
+
+var (
+	httpClient     *http.Client
+	httpClientOnce sync.Once
+)
+
+func getHTTPClient() *http.Client {
+	httpClientOnce.Do(func() {
+		transport := &http.Transport{
+			ForceAttemptHTTP2: false,                                                  // Disable HTTP/2
+			TLSNextProto:      map[string]func(string, *tls.Conn) http.RoundTripper{}, // Disable HTTP/2 upgrades
+		}
+
+		httpClient = &http.Client{
+			Transport: transport,
+			Timeout:   240 * time.Second,
+		}
+	})
+	return httpClient
+}
 
 // CallApi calls the API with the specified HTTP verb, URL, payload, user ID, and password.
 //
 // It returns a pointer to http.Response and an error.
 func CallApi(verb string, url string, payload string, userId string, password string) ([]byte, *http.Response, error) {
-	transport := &http.Transport{
-		ForceAttemptHTTP2: false,                                                  // Disable HTTP/2
-		TLSNextProto:      map[string]func(string, *tls.Conn) http.RoundTripper{}, // Disable HTTP/2 upgrades
-	}
-
-	//fmt.Printf("--------- call %s:%s\n", verb, url)
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   240 * time.Second,
-	}
+	client := getHTTPClient()
 
 	bodyReader := bytes.NewReader([]byte(payload))
 	req, err := http.NewRequest(verb, url, bodyReader)
