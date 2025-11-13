@@ -19,8 +19,11 @@ var (
 func getHTTPClient() *http.Client {
 	httpClientOnce.Do(func() {
 		transport := &http.Transport{
-			ForceAttemptHTTP2: false,                                                  // Disable HTTP/2
-			TLSNextProto:      map[string]func(string, *tls.Conn) http.RoundTripper{}, // Disable HTTP/2 upgrades
+			ForceAttemptHTTP2:   false,                                                  // Disable HTTP/2
+			TLSNextProto:        map[string]func(string, *tls.Conn) http.RoundTripper{}, // Disable HTTP/2 upgrades
+			MaxIdleConns:        20,
+			MaxIdleConnsPerHost: 10,
+			IdleConnTimeout:     60 * time.Second,
 		}
 
 		httpClient = &http.Client{
