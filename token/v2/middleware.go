@@ -30,11 +30,17 @@ func extractBearerToken(c *gin.Context, headerName string) (string, error) {
 		return "", fmt.Errorf("authorization header missing")
 	}
 
-	if !strings.HasPrefix(authHeader, "Bearer ") {
+	if !strings.HasPrefix(authHeader, "Bearer") {
 		return "", fmt.Errorf("token must start with 'Bearer '")
 	}
 
-	return strings.TrimPrefix(authHeader, "Bearer "), nil
+	token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+
+	if token == "Bearer" {
+		return "", fmt.Errorf("token is empty")
+	}
+
+	return token, nil
 }
 
 // MiddlewareConfig defines configuration for the JWT middleware
