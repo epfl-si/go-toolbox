@@ -22,9 +22,9 @@ const (
 	ContextKeyIdentity   contextKey = "identity"
 )
 
-// extractBearerToken extracts the Bearer token from Authorization header
+// ExtractBearerTokenFromGinContext extracts the Bearer token from Authorization header
 // Returns the token string (without "Bearer " prefix) or an error
-func extractBearerToken(c *gin.Context, headerName string) (string, error) {
+func ExtractBearerTokenFromGinContext(c *gin.Context, headerName string) (string, error) {
 	authHeader := c.GetHeader(headerName)
 	if authHeader == "" {
 		return "", fmt.Errorf("authorization header missing")
@@ -77,7 +77,7 @@ func UnifiedJWTMiddleware(config MiddlewareConfig) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		// Extract token from Authorization header
-		tokenString, err := extractBearerToken(c, config.HeaderName)
+		tokenString, err := ExtractBearerTokenFromGinContext(c, config.HeaderName)
 		if err != nil {
 			config.Logger.Debug("Invalid token format", zap.Error(err))
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -154,7 +154,7 @@ func MachineTokenMiddleware(validator TokenValidator, logger *zap.Logger) gin.Ha
 
 	return func(c *gin.Context) {
 		// Extract token from Authorization header
-		tokenString, err := extractBearerToken(c, middlewareConfig.HeaderName)
+		tokenString, err := ExtractBearerTokenFromGinContext(c, middlewareConfig.HeaderName)
 		if err != nil {
 			logger.Debug("Invalid token format", zap.Error(err))
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})

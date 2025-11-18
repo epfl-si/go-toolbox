@@ -159,6 +159,28 @@ func main() {
 }
 ```
 
+### Token Extraction
+
+The package provides a utility function to extract JWT tokens from HTTP headers:
+
+```go
+// Extract token from Authorization header
+tokenString, err := token.ExtractBearerTokenFromGinContext(c, "Authorization")
+if err != nil {
+    // Handle missing or malformed token
+    return
+}
+
+// Use the token string directly or validate it
+claims, err := validator.ValidateToken(tokenString)
+```
+
+This function:
+- Extracts the token from the specified header (default: "Authorization")
+- Verifies it has the "Bearer" prefix
+- Returns the token string with the "Bearer" prefix removed
+- Returns appropriate errors for missing or malformed tokens
+
 ### Machine-to-Machine Tokens
 
 ```go
@@ -394,6 +416,9 @@ func GetIdentity(claims *UnifiedClaims) string // Unified logging identity
 
 // Context extraction
 func ExtractMachineContext(claims *UnifiedClaims) *MachineContext
+
+// Token extraction
+func ExtractBearerTokenFromGinContext(c *gin.Context, headerName string) (string, error) // Extract token string from header
 ```
 
 ### Middleware API
