@@ -26,14 +26,16 @@ func GetTokenType(claims *UnifiedClaims) Type {
 	// Machine tokens have azp/appid + roles, and lack user-specific fields
 	if (claims.AuthorizedParty != "" || claims.AppID != "") && len(claims.Roles) > 0 {
 		// Verify absence of user fields for confirmation
-		if claims.Name == "" && claims.Email == "" && claims.PreferredUsername == "" {
+		if claims.Name == "" && claims.Email == "" && claims.PreferredUsername == "" &&
+			claims.Gaspar == "" && claims.GivenName == "" && claims.FamilyName == "" {
 			return TypeMachine
 		}
 	}
 
 	// Priority 2: User token indicators
 	// User tokens have personal identifiers or service accounts
-	if claims.Name != "" || claims.Email != "" || claims.PreferredUsername != "" || claims.UniqueID != "" {
+	if claims.Name != "" || claims.Email != "" || claims.PreferredUsername != "" || claims.Gaspar != "" ||
+		claims.UniqueID != "" || claims.GivenName != "" || claims.FamilyName != "" {
 		return TypeUser
 	}
 
@@ -72,17 +74,51 @@ func GetIdentity(claims *UnifiedClaims) string {
 		if claims.UniqueID != "" {
 			return fmt.Sprintf("User:%s", claims.UniqueID)
 		}
-		// Priority 3: Username
+		// Priority 2: Structured name (given + family name)
+		if claims.GivenName != "" && claims.FamilyName != "" {
+			return fmt.Sprintf("User:%s %s", claims.GivenName, claims.FamilyName)
+		}
+		// Priority 3: Display name
+		if claims.Name != "" {
+			return fmt.Sprintf("User:%s", claims.Name)
+		}
+		// Priority 4: Username
 		if claims.PreferredUsername != "" {
 			return fmt.Sprintf("User:%s", claims.PreferredUsername)
 		}
-		// Priority 4: Email
+		// Priority 5: Gaspar username
+		if claims.Gaspar != "" {
+			return fmt.Sprintf("User:%s", claims.Gaspar)
+		}
+		// Priority 6: Email
 		if claims.Email != "" {
 			return fmt.Sprintf("User:%s", claims.Email)
 		}
 		return "User:Unknown"
 	}
 	return "Unknown"
+}
+
+// GetFullName returns the full name, preferring structured fields when available.
+// Returns empty string if no name information is available.
+func GetFullName(claims *UnifiedClaims) string {
+	// Priority 1: Structured name (most specific)
+	if claims.GivenName != "" && claims.FamilyName != "" {
+		return fmt.Sprintf("%s %s", claims.GivenName, claims.FamilyName)
+	}
+	// Priority 2: Display name
+	if claims.Name != "" {
+		return claims.Name
+	}
+	// Priority 3: Username as fallback
+	if claims.PreferredUsername != "" {
+		return claims.PreferredUsername
+	}
+	// Priority 4: Gaspar username as fallback
+	if claims.Gaspar != "" {
+		return claims.Gaspar
+	}
+	return ""
 }
 
 // GetApplicationID returns the application/client ID from machine tokens.
@@ -149,10 +185,13 @@ type UnifiedClaims struct {
 	jwt.RegisteredClaims // Standard JWT claims (iss, sub, exp, etc.)
 
 	// Core identifiers
-	UniqueID string `json:"uniqueid,omitempty"` // SCIPER (6 digits) or service account (M + 5 digits)
-	Name     string `json:"name,omitempty"`     // Display name
-	Email    string `json:"email,omitempty"`    // Primary email address
-	TenantID string `json:"tid,omitempty"`      // Azure Entra tenant ID
+	UniqueID   string `json:"uniqueid,omitempty"`    // SCIPER (6 digits) or service account (M + 5 digits)
+	Name       string `json:"name,omitempty"`        // Display name (may be full name or empty)
+	Email      string `json:"email,omitempty"`       // Primary email address
+	Gaspar     string `json:"gaspar,omitempty"`      // Gaspar username 
+	GivenName  string `json:"given_name,omitempty"`  // Given name (first name) from IdP
+	FamilyName string `json:"family_name,omitempty"` // Family name (last name) from IdP
+	TenantID   string `json:"tid,omitempty"`         // Azure Entra tenant ID
 
 	// Machine-to-machine specific claims
 	AuthorizedParty string `json:"azp,omitempty"`   // AppId of the client application (v2 tokens)

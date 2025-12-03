@@ -273,3 +273,73 @@ func ExampleNewMachineTokenForTesting() {
 	// Token type: machine
 	// Roles: [api.read api.write]
 }
+
+func ExampleUnifiedClaims_structuredNameFields() {
+	// Example of using the new GivenName and FamilyName fields from Entra
+	claims := UnifiedClaims{
+		UniqueID:   "123456",
+		GivenName:  "John",
+		FamilyName: "Doe",
+		Email:      "john.doe@epfl.ch",
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   "john.doe@epfl.ch",
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	// Create and sign token
+	secret := []byte("secret")
+	tokenString, err := SignUnified(claims, secret)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	// Parse token back
+	parsedClaims, err := ParseUnifiedHMAC(tokenString, secret)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	// Use the structured name fields
+	fmt.Printf("Given Name: %s\n", parsedClaims.GivenName)
+	fmt.Printf("Family Name: %s\n", parsedClaims.FamilyName)
+	fmt.Printf("Full Name: %s\n", GetFullName(parsedClaims))
+	fmt.Printf("Token Type: %s\n", GetTokenType(parsedClaims))
+	fmt.Printf("Identity: %s\n", GetIdentity(parsedClaims))
+
+	// Output:
+	// Given Name: John
+	// Family Name: Doe
+	// Full Name: John Doe
+	// Token Type: user
+	// Identity: User:123456
+}
+
+func ExampleGetFullName() {
+	// Example 1: Token with structured name fields
+	claims1 := &UnifiedClaims{
+		GivenName:  "Jane",
+		FamilyName: "Smith",
+	}
+	fmt.Printf("Structured name: %s\n", GetFullName(claims1))
+
+	// Example 2: Token with only Name field (fallback)
+	claims2 := &UnifiedClaims{
+		Name: "Jane Smith",
+	}
+	fmt.Printf("Display name: %s\n", GetFullName(claims2))
+
+	// Example 3: Token with no name fields
+	claims3 := &UnifiedClaims{
+		Email: "user@example.com",
+	}
+	fmt.Printf("No name: '%s'\n", GetFullName(claims3))
+
+	// Output:
+	// Structured name: Jane Smith
+	// Display name: Jane Smith
+	// No name: ''
+}
