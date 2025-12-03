@@ -357,6 +357,217 @@ func TestGetTokenType_MachineTokens(t *testing.T) {
 	}
 }
 
+func TestGetTokenType_WithNewNameFields(t *testing.T) {
+	tests := []struct {
+		name     string
+		claims   *UnifiedClaims
+		expected Type
+	}{
+		{
+			name: "user token with given_name and family_name",
+			claims: &UnifiedClaims{
+				GivenName:  "John",
+				FamilyName: "Doe",
+				Email:      "john.doe@example.com",
+			},
+			expected: TypeUser,
+		},
+		{
+			name: "user token with only new name fields (no Name field)",
+			claims: &UnifiedClaims{
+				GivenName:  "Jane",
+				FamilyName: "Smith",
+			},
+			expected: TypeUser,
+		},
+		{
+			name: "user token with only given_name",
+			claims: &UnifiedClaims{
+				GivenName: "Alice",
+			},
+			expected: TypeUser,
+		},
+		{
+			name: "user token with only family_name",
+			claims: &UnifiedClaims{
+				FamilyName: "Johnson",
+			},
+			expected: TypeUser,
+		},
+		{
+			name: "user token with Gaspar username",
+			claims: &UnifiedClaims{
+				Gaspar: "aassad",
+			},
+			expected: TypeUser,
+		},
+		{
+			name: "user token with Gaspar and email",
+			claims: &UnifiedClaims{
+				Gaspar: "jveryveryl",
+				Email:  "john.veryverylongname@epfl.ch",
+			},
+			expected: TypeUser,
+		},
+		{
+			name: "machine token should not be affected by new name fields",
+			claims: &UnifiedClaims{
+				AuthorizedParty: "app-id-123",
+				Roles:           []string{"api.read"},
+				// No name fields
+			},
+			expected: TypeMachine,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetTokenType(tt.claims)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetFullName(t *testing.T) {
+	tests := []struct {
+		name     string
+		claims   *UnifiedClaims
+		expected string
+	}{
+		{
+			name: "full name from given and family name",
+			claims: &UnifiedClaims{
+				GivenName:  "John",
+				FamilyName: "Doe",
+			},
+			expected: "John Doe",
+		},
+		{
+			name: "fallback to Name field",
+			claims: &UnifiedClaims{
+				Name: "John Doe",
+			},
+			expected: "John Doe",
+		},
+		{
+			name: "prefer structured name over Name field",
+			claims: &UnifiedClaims{
+				GivenName:  "Jane",
+				FamilyName: "Smith",
+				Name:       "J. Smith",
+			},
+			expected: "Jane Smith",
+		},
+		{
+			name: "fallback to preferred_username",
+			claims: &UnifiedClaims{
+				PreferredUsername: "jdoe",
+			},
+			expected: "jdoe",
+		},
+		{
+			name: "fallback to Gaspar username",
+			claims: &UnifiedClaims{
+				Gaspar: "aassad",
+			},
+			expected: "aassad",
+		},
+		{
+			name: "prefer preferred_username over Gaspar",
+			claims: &UnifiedClaims{
+				PreferredUsername: "john.doe",
+				Gaspar:            "jdoe",
+			},
+			expected: "john.doe",
+		},
+		{
+			name: "empty when no name available",
+			claims: &UnifiedClaims{
+				Email: "test@example.com",
+			},
+			expected: "",
+		},
+		{
+			name: "only given_name returns empty (needs both)",
+			claims: &UnifiedClaims{
+				GivenName: "John",
+			},
+			expected: "",
+		},
+		{
+			name: "only family_name returns empty (needs both)",
+			claims: &UnifiedClaims{
+				FamilyName: "Doe",
+			},
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetFullName(tt.claims)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetIdentity_WithNewNameFields(t *testing.T) {
+	tests := []struct {
+		name     string
+		claims   *UnifiedClaims
+		expected string
+	}{
+		{
+			name: "identity uses structured name when available",
+			claims: &UnifiedClaims{
+				GivenName:  "John",
+				FamilyName: "Doe",
+				Email:      "john.doe@example.com",
+			},
+			expected: "User:John Doe",
+		},
+		{
+			name: "identity prefers UniqueID over structured name",
+			claims: &UnifiedClaims{
+				UniqueID:   "123456",
+				GivenName:  "John",
+				FamilyName: "Doe",
+			},
+			expected: "User:123456",
+		},
+		{
+			name: "identity uses Name when no structured name",
+			claims: &UnifiedClaims{
+				Name:      "John Doe",
+				GivenName: "John", // Only one part, won't be used
+			},
+			expected: "User:John Doe",
+		},
+		{
+			name: "identity uses Gaspar username",
+			claims: &UnifiedClaims{
+				Gaspar: "aassad",
+			},
+			expected: "User:aassad",
+		},
+		{
+			name: "identity prefers PreferredUsername over Gaspar",
+			claims: &UnifiedClaims{
+				PreferredUsername: "john.doe",
+				Gaspar:            "jdoe",
+			},
+			expected: "User:john.doe",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetIdentity(tt.claims)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestGetApplicationID(t *testing.T) {
 	tests := []struct {
 		name     string
