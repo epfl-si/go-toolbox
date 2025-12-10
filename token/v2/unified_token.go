@@ -131,6 +131,18 @@ func GetApplicationID(claims *UnifiedClaims) string {
 	return claims.AppID // v1 tokens fallback
 }
 
+// GetAssociatedApplication returns the associated application/client ID from tokens.
+// This provides a unified way to get the relevant application ID regardless of token type.
+func GetAssociatedApplication(claims *UnifiedClaims) string {
+	if claims.AuthorizedParty != "" {
+		return claims.AuthorizedParty // v2 tokens
+	}
+	if claims.AppID != "" {
+		return claims.AppID // v1 tokens
+	}
+	return claims.Audience[0]
+}
+
 // GetServicePrincipalID returns the service principal object ID for machine tokens.
 // Returns ObjectID (oid) if present, otherwise falls back to ApplicationID.
 // The ObjectID represents the service principal instance in the directory.
@@ -188,7 +200,7 @@ type UnifiedClaims struct {
 	UniqueID   string `json:"uniqueid,omitempty"`    // SCIPER (6 digits) or service account (M + 5 digits)
 	Name       string `json:"name,omitempty"`        // Display name (may be full name or empty)
 	Email      string `json:"email,omitempty"`       // Primary email address
-	Gaspar     string `json:"gaspar,omitempty"`      // Gaspar username 
+	Gaspar     string `json:"gaspar,omitempty"`      // Gaspar username
 	GivenName  string `json:"given_name,omitempty"`  // Given name (first name) from IdP
 	FamilyName string `json:"family_name,omitempty"` // Family name (last name) from IdP
 	TenantID   string `json:"tid,omitempty"`         // Azure Entra tenant ID

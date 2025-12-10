@@ -1548,3 +1548,56 @@ func TestGenericValidator_AlgorithmSubstitutionAttack(t *testing.T) {
 		assert.Contains(t, err.Error(), "security violation")
 	})
 }
+
+// add a table test for GetAssociatedApplication
+
+func TestGetAssociatedApplication(t *testing.T) {
+	appID := "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e201"
+	azpID := "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e202"
+	audID := "8cf9b4d1-4b30-48e4-98d8-8c3b02c1e203"
+
+	tests := []struct {
+		name          string
+		claims        UnifiedClaims
+		expectedAppID string
+	}{
+		{
+			name: "app token with azp",
+			claims: UnifiedClaims{
+				AuthorizedParty: azpID,
+				AppID:           appID,
+				RegisteredClaims: jwt.RegisteredClaims{
+					Audience: []string{audID},
+				},
+			},
+			expectedAppID: azpID,
+		},
+		{
+			name: "app token without azp",
+			claims: UnifiedClaims{
+				AppID: appID,
+				RegisteredClaims: jwt.RegisteredClaims{
+					Audience: []string{audID},
+				},
+			},
+			expectedAppID: appID,
+		},
+		{
+			name: "user token",
+			claims: UnifiedClaims{
+				UniqueID: "123456",
+				RegisteredClaims: jwt.RegisteredClaims{
+					Audience: []string{audID},
+				},
+			},
+			expectedAppID: audID,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			appID := GetAssociatedApplication(&tt.claims)
+			assert.Equal(t, tt.expectedAppID, appID)
+		})
+	}
+}
