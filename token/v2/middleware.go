@@ -30,14 +30,13 @@ func ExtractBearerTokenFromGinContext(c *gin.Context, headerName string) (string
 		return "", fmt.Errorf("authorization header missing")
 	}
 
-	if !strings.HasPrefix(authHeader, "Bearer") {
-		return "", fmt.Errorf("token must start with 'Bearer '")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		return "", fmt.Errorf("authorization header must start with 'Bearer ' (with space)")
 	}
 
 	token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
-
-	if token == "Bearer" {
-		return "", fmt.Errorf("token is empty")
+	if token == "" {
+		return "", fmt.Errorf("bearer token is empty")
 	}
 
 	return token, nil
