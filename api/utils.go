@@ -84,6 +84,9 @@ func GetContext(c *gin.Context) (api.Context, error) {
 	userTypeValue, _ := c.Get("userType")
 	userType := fmt.Sprintf("%s", userTypeValue)
 
+	uuidValue, _ := c.Get("uuid")
+	uuid := fmt.Sprintf("%s", uuidValue)
+
 	scopesValue, _ := c.Get("scopes")
 	scopes := []string{}
 	if scopesValue != nil {
@@ -121,6 +124,7 @@ func GetContext(c *gin.Context) (api.Context, error) {
 	}
 
 	return api.Context{
+		UUID:            uuid,
 		UserId:          userId,
 		UserType:        userType,
 		Lang:            langStr,

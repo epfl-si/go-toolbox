@@ -1,6 +1,7 @@
 package api
 
 type Context struct {
+	UUID            string
 	UserId          string
 	UserType        string
 	Lang            string
