@@ -2,6 +2,7 @@
 package token
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -219,6 +220,35 @@ type UnifiedClaims struct {
 	Units  []Unit   `json:"units,omitempty"`  // EPFL unit info with hierarchy
 	Roles  []string `json:"roles,omitempty"`  // User roles or App Roles (e.g., ["default_access"])
 
+}
+
+// UnmarshalJSON implements custom unmarshaling with email field fallback
+func (c *UnifiedClaims) UnmarshalJSON(data []byte) error {
+	// Use type alias to avoid infinite recursion
+	type Alias UnifiedClaims
+	aux := (*Alias)(c)
+
+	// First, unmarshal normally using default behavior
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	// If Email is still empty, check alternative field names
+	if c.Email == "" {
+		var m map[string]interface{}
+		if err := json.Unmarshal(data, &m); err == nil {
+			for _, key := range []string{"email", "useremail", "mail", "upn"} {
+				if v, ok := m[key]; ok {
+					if email, ok := v.(string); ok && email != "" {
+						c.Email = email
+						break
+					}
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // SignUnified creates and signs a JWT token with UnifiedClaims using HMAC
