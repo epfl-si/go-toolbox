@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strings"
 
+	gofrsuuid "github.com/gofrs/uuid"
+
 	api "github.com/epfl-si/go-toolbox/api/models"
 	"github.com/epfl-si/go-toolbox/messages"
 	"github.com/gin-gonic/gin"
@@ -86,6 +88,10 @@ func GetContext(c *gin.Context) (api.Context, error) {
 
 	uuidValue, _ := c.Get("uuid")
 	uuid := fmt.Sprintf("%s", uuidValue)
+	if uuid == "" {
+		uuidValue, _ := gofrsuuid.NewV4()
+		uuid = fmt.Sprintf("%v", uuidValue)
+	}
 
 	scopesValue, _ := c.Get("scopes")
 	scopes := []string{}
