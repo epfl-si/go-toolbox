@@ -45,7 +45,7 @@ func GetGormDB(log *zap.Logger, host, name, user, pass, port, param string, maxI
 		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {
-		log.Error(fmt.Sprintf("GetGormDB: %s", err))
+		log.Error(fmt.Sprintf("GetGormDB:Hostname:'%s': %s", host, err))
 		return nil, err
 	}
 
@@ -53,7 +53,7 @@ func GetGormDB(log *zap.Logger, host, name, user, pass, port, param string, maxI
 
 	sqlDB, err := db.DB()
 	if err != nil {
-		log.Error(fmt.Sprintf("GetGormDB: %s", err))
+		log.Error(fmt.Sprintf("GetGormDB:Hostname:'%s': %s", host, err))
 		return nil, err
 	}
 	sqlDB.SetMaxIdleConns(maxIdle)
