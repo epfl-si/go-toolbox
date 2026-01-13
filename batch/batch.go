@@ -74,6 +74,7 @@ func InitBatch() (batch.BatchConfig, error) {
 		logger = getBatchLogger(strings.ToLower(os.Getenv("LOG_LEVEL")), ex, uuidStr)
 	}
 
+	// FIXME: env variables names should not be hardcoded here, maybe passed as params
 	db, err := database.GetGormDB(logger, os.Getenv("CADI_DB_HOST"), os.Getenv("CADI_DB_NAME"), os.Getenv("CADI_DB_USER"), os.Getenv("CADI_DB_PWD"), os.Getenv("CADI_DB_PORT"), os.Getenv("CADI_DB_PARAMS"), 1, 1)
 	if err != nil {
 		return batch.BatchConfig{Logger: logger}, err
@@ -112,6 +113,7 @@ func InitBatchWithArgs(mode, name, path, args string) (batch.BatchConfig, error)
 		logger = getBatchLogger(strings.ToLower(os.Getenv("LOG_LEVEL")), name, uuidStr)
 	}
 
+	// FIXME: env variables names should not be hardcoded here, maybe passed as params
 	db, err := database.GetGormDB(logger, os.Getenv("CADI_DB_HOST"), os.Getenv("CADI_DB_NAME"), os.Getenv("CADI_DB_USER"), os.Getenv("CADI_DB_PWD"), os.Getenv("CADI_DB_PORT"), os.Getenv("CADI_DB_PARAMS"), 1, 1)
 	if err != nil {
 		return batch.BatchConfig{Logger: logger}, err
