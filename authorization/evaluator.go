@@ -78,8 +78,8 @@ func (e *PolicyEvaluator) evaluateSystemPermission(authCtx AuthContext, permissi
 
 // evaluateUser evaluates permissions for human users
 func (e *PolicyEvaluator) evaluateUser(authCtx AuthContext, permission Permission, resource ResourceContext) (bool, string) {
-	// Get roles from AD groups using the group-to-role mapping
-	roles := e.getRolesFromGroups(authCtx.GetGroups())
+	// Get all roles (including those directly in context and mapped from AD groups)
+	roles := e.getRoles(authCtx)
 
 	// PRIORITY 1: Check global role permissions first (global bypass)
 	// This allows users with global permissions to access any resource regardless of unit
@@ -309,29 +309,24 @@ func (e *PolicyEvaluator) evaluateMachine(authCtx AuthContext, permission Permis
 
 // getRoles gets all roles for an auth context
 func (e *PolicyEvaluator) getRoles(authCtx AuthContext) []string {
-	if authCtx.IsMachine() {
-		// For machines, return direct roles plus any mapped from groups
-		directRoles := authCtx.GetRoles()
-		groupRoles := e.getRolesFromGroups(authCtx.GetGroups())
+	// For both users and machines, return direct roles plus any mapped from groups
+	directRoles := authCtx.GetRoles()
+	groupRoles := e.getRolesFromGroups(authCtx.GetGroups())
 
-		// Combine and deduplicate
-		roleSet := make(map[string]bool)
-		for _, role := range directRoles {
-			roleSet[role] = true
-		}
-		for _, role := range groupRoles {
-			roleSet[role] = true
-		}
-
-		result := make([]string, 0, len(roleSet))
-		for role := range roleSet {
-			result = append(result, role)
-		}
-		return result
+	// Combine and deduplicate
+	roleSet := make(map[string]bool)
+	for _, role := range directRoles {
+		roleSet[role] = true
+	}
+	for _, role := range groupRoles {
+		roleSet[role] = true
 	}
 
-	// For users, map AD groups to roles
-	return e.getRolesFromGroups(authCtx.GetGroups())
+	result := make([]string, 0, len(roleSet))
+	for role := range roleSet {
+		result = append(result, role)
+	}
+	return result
 }
 
 // getRolesFromGroups translates AD groups to internal roles
