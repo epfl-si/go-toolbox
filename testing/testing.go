@@ -104,6 +104,10 @@ func GetMockGeneric(logger *zap.Logger, c *gin.Context) {
 	version := c.Param("apiversion")
 
 	filePath := strings.ReplaceAll(c.Request.URL.Path, fmt.Sprintf("/mocks/%s/", version), "")
+	// Check if the last character is '/' and remove it if true
+	if len(filePath) > 0 && filePath[len(filePath)-1] == '/' {
+		filePath = filePath[:len(filePath)-1]
+	}
 	filePath = strings.ReplaceAll(filePath, "/", "_") + ".json"
 
 	// TODO : params, in alphabetical order
