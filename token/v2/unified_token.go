@@ -2,6 +2,7 @@
 package token
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -131,6 +132,18 @@ func GetApplicationID(claims *UnifiedClaims) string {
 	return claims.AppID // v1 tokens fallback
 }
 
+// GetAssociatedApplication returns the associated application/client ID from tokens.
+// This provides a unified way to get the relevant application ID regardless of token type.
+func GetAssociatedApplication(claims *UnifiedClaims) string {
+	if claims.AuthorizedParty != "" {
+		return claims.AuthorizedParty // v2 tokens
+	}
+	if claims.AppID != "" {
+		return claims.AppID // v1 tokens
+	}
+	return claims.Audience[0]
+}
+
 // GetServicePrincipalID returns the service principal object ID for machine tokens.
 // Returns ObjectID (oid) if present, otherwise falls back to ApplicationID.
 // The ObjectID represents the service principal instance in the directory.
@@ -188,7 +201,7 @@ type UnifiedClaims struct {
 	UniqueID   string `json:"uniqueid,omitempty"`    // SCIPER (6 digits) or service account (M + 5 digits)
 	Name       string `json:"name,omitempty"`        // Display name (may be full name or empty)
 	Email      string `json:"email,omitempty"`       // Primary email address
-	Gaspar     string `json:"gaspar,omitempty"`      // Gaspar username 
+	Gaspar     string `json:"gaspar,omitempty"`      // Gaspar username
 	GivenName  string `json:"given_name,omitempty"`  // Given name (first name) from IdP
 	FamilyName string `json:"family_name,omitempty"` // Family name (last name) from IdP
 	TenantID   string `json:"tid,omitempty"`         // Azure Entra tenant ID
@@ -207,6 +220,35 @@ type UnifiedClaims struct {
 	Units  []Unit   `json:"units,omitempty"`  // EPFL unit info with hierarchy
 	Roles  []string `json:"roles,omitempty"`  // User roles or App Roles (e.g., ["default_access"])
 
+}
+
+// UnmarshalJSON implements custom unmarshaling with email field fallback
+func (c *UnifiedClaims) UnmarshalJSON(data []byte) error {
+	// Use type alias to avoid infinite recursion
+	type Alias UnifiedClaims
+	aux := (*Alias)(c)
+
+	// First, unmarshal normally using default behavior
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	// If Email is still empty, check alternative field names
+	if c.Email == "" {
+		var m map[string]interface{}
+		if err := json.Unmarshal(data, &m); err == nil {
+			for _, key := range []string{"email", "useremail", "mail", "upn"} {
+				if v, ok := m[key]; ok {
+					if email, ok := v.(string); ok && email != "" {
+						c.Email = email
+						break
+					}
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // SignUnified creates and signs a JWT token with UnifiedClaims using HMAC

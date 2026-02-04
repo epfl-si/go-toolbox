@@ -38,7 +38,7 @@ func Log(logger *zap.Logger, priority, message string) {
 	}
 }
 
-func InitBatch() (batch.BatchConfig, error) {
+func InitBatch(params map[string]string) (batch.BatchConfig, error) {
 	// generate a UUID
 	uuid, _ := uuid.NewV4()
 	uuidStr := fmt.Sprintf("%v", uuid)
@@ -74,7 +74,8 @@ func InitBatch() (batch.BatchConfig, error) {
 		logger = getBatchLogger(strings.ToLower(os.Getenv("LOG_LEVEL")), ex, uuidStr)
 	}
 
-	db, err := database.GetGormDB(logger, os.Getenv("CADI_DB_HOST"), os.Getenv("CADI_DB_NAME"), os.Getenv("CADI_DB_USER"), os.Getenv("CADI_DB_PWD"), os.Getenv("CADI_DB_PORT"), os.Getenv("CADI_DB_PARAMS"), 1, 1)
+	db_host, db_port, db_params := overrideEnvironmentVariables()
+	db, err := database.GetGormDB(logger, db_host, os.Getenv("CADI_DB_NAME"), os.Getenv("CADI_DB_USER"), os.Getenv("CADI_DB_PWD"), db_port, db_params, 1, 1)
 	if err != nil {
 		return batch.BatchConfig{Logger: logger}, err
 	}
@@ -112,7 +113,8 @@ func InitBatchWithArgs(mode, name, path, args string) (batch.BatchConfig, error)
 		logger = getBatchLogger(strings.ToLower(os.Getenv("LOG_LEVEL")), name, uuidStr)
 	}
 
-	db, err := database.GetGormDB(logger, os.Getenv("CADI_DB_HOST"), os.Getenv("CADI_DB_NAME"), os.Getenv("CADI_DB_USER"), os.Getenv("CADI_DB_PWD"), os.Getenv("CADI_DB_PORT"), os.Getenv("CADI_DB_PARAMS"), 1, 1)
+	db_host, db_port, db_params := overrideEnvironmentVariables()
+	db, err := database.GetGormDB(logger, db_host, os.Getenv("CADI_DB_NAME"), os.Getenv("CADI_DB_USER"), os.Getenv("CADI_DB_PWD"), db_port, db_params, 1, 1)
 	if err != nil {
 		return batch.BatchConfig{Logger: logger}, err
 	}
@@ -153,11 +155,12 @@ func processSendStatus(config batch.BatchConfig, status string, exitProcess bool
 		stderrStr = stderrStr[:maxStdoutSize]
 	}
 
-	if status == "success" {
+	switch status {
+	case "success":
 		status = "s"
-	} else if status == "failed" {
+	case "failed":
 		status = "f"
-	} else {
+	default:
 		status = "f"
 	}
 
@@ -241,4 +244,25 @@ func processSendStatus(config batch.BatchConfig, status string, exitProcess bool
 	}
 
 	return nil
+}
+
+func overrideEnvironmentVariables() (string, string, string) {
+
+	db_host := os.Getenv("CADI_DB_HOST")
+	db_port := os.Getenv("CADI_DB_PORT")
+	db_params := os.Getenv("CADI_DB_PARAMS")
+
+	if value, exists := os.LookupEnv("CADI_DB_HOST"); !exists || value == "" {
+		db_host = os.Getenv("DEFAULT_DB_HOST")
+	}
+
+	if value, exists := os.LookupEnv("CADI_DB_PORT"); !exists || value == "" {
+		db_port = os.Getenv("DEFAULT_DB_PORT")
+	}
+
+	if value, exists := os.LookupEnv("CADI_DB_PARAMS"); !exists || value == "" {
+		db_params = os.Getenv("DEFAULT_DB_PARAMS")
+	}
+
+	return db_host, db_port, db_params
 }

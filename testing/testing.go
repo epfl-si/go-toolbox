@@ -10,7 +10,10 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/epfl-si/go-toolbox/log"
+	"github.com/gin-gonic/gin"
 	"github.com/wI2L/jsondiff"
+	"go.uber.org/zap"
 )
 
 // MakeRequest makes an HTTP request with the specified verb, URL, payload, schema, and value.
@@ -94,4 +97,28 @@ func CompareResponses(actual string, referenceFilename string) (bool, string, er
 		//fmt.Printf("%s\n", string(diffs))
 		return false, string(diffs), nil
 	}
+}
+
+// Generic getter for mock files
+func GetMockGeneric(logger *zap.Logger, c *gin.Context) {
+	version := c.Param("apiversion")
+
+	filePath := strings.ReplaceAll(c.Request.URL.Path, fmt.Sprintf("/mocks/%s/", version), "")
+	// Check if the last character is '/' and remove it if true
+	if len(filePath) > 0 && filePath[len(filePath)-1] == '/' {
+		filePath = filePath[:len(filePath)-1]
+	}
+	filePath = strings.ReplaceAll(filePath, "/", "_") + ".json"
+
+	// TODO : params, in alphabetical order
+
+	filePath = "/home/dinfo/mocks/" + version + "/GET_" + filePath
+
+	b, err := os.ReadFile(filePath)
+	if err != nil {
+		log.LogApiError(logger, c, "cannot read mock file '"+filePath+"'")
+		c.JSON(http.StatusInternalServerError, gin.H{"details": "cannot read mock file '" + filePath + "'"})
+		return
+	}
+	c.Data(http.StatusOK, "application/json", b)
 }
