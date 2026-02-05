@@ -221,7 +221,7 @@ func CorsMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		ctx.Writer.Header().Set("Access-Control-Allow-Methods", "*")
-		ctx.Writer.Header().Set("Access-Control-Allow-Headers", "*")
+		ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization")
 
 		// Don't call c.Next() for OPTIONS requests (only need CORS headers)
 		if ctx.Request.Method != "OPTIONS" {
