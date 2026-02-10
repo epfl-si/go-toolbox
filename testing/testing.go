@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 
 	api_models "github.com/epfl-si/go-toolbox/api/models"
@@ -112,13 +113,23 @@ func GetMockGeneric(logger *zap.Logger, c *gin.Context) {
 	filePath = strings.ReplaceAll(filePath, "/", "_")
 
 	// Add params in path
-	params := ""
 	queryParams := c.Request.URL.Query()
-	for key, value := range queryParams {
-		if value[0] == "" {
-			continue
+	var params string
+	var keys []string
+
+	// Collect keys
+	for key := range queryParams {
+		if queryParams[key][0] != "" {
+			keys = append(keys, key)
 		}
-		params += fmt.Sprintf("_%s=%s", key, strings.Join(value, ","))
+	}
+
+	// Sort keys
+	sort.Strings(keys)
+
+	// Build the params string
+	for _, key := range keys {
+		params += fmt.Sprintf("_%s=%s", key, strings.Join(queryParams[key], ","))
 	}
 
 	filePath = "/home/dinfo/mocks/" + version + "/GET_" + filePath + params + ".json"
