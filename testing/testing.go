@@ -101,8 +101,18 @@ func CompareResponses(actual string, referenceFilename string) (bool, string, er
 	}
 }
 
-// Generic getter for mock files
-func GetMockGeneric(logger *zap.Logger, c *gin.Context) {
+// Generic mocker for endpoints
+func MockGeneric(logger *zap.Logger, c *gin.Context, method string) {
+
+	switch strings.ToUpper(method) {
+	case "GET", "PUT", "POST", "DELETE", "PATCH":
+		method = strings.ToUpper(method)
+	default:
+		err := fmt.Sprintf("wrong method for mock file: %s", method)
+		log.LogApiError(logger, c, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"details": err})
+		return
+	}
 	version := c.Param("apiversion")
 
 	filePath := strings.ReplaceAll(c.Request.URL.Path, fmt.Sprintf("/mocks/%s/", version), "")
@@ -132,7 +142,7 @@ func GetMockGeneric(logger *zap.Logger, c *gin.Context) {
 		params += fmt.Sprintf("_%s=%s", key, strings.Join(queryParams[key], ","))
 	}
 
-	filePath = "/home/dinfo/mocks/" + version + "/GET_" + filePath + params + ".json"
+	filePath = "/home/dinfo/mocks/" + version + "/" + method + "_" + filePath + params + ".json"
 
 	b, err := os.ReadFile(filePath)
 	if err != nil {
@@ -144,7 +154,7 @@ func GetMockGeneric(logger *zap.Logger, c *gin.Context) {
 
 	httpStatus := http.StatusOK
 
-	// If it can Unmarshal the response into an error, then it means it is an error and we want to retrieve its Status
+	// If it can Unmarshal the response into an error, then it means it is an actual error and we want to retrieve its Status
 	var apiError api_models.Error
 	err = json.Unmarshal(b, &apiError)
 	if err == nil {
