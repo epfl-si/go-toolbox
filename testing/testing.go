@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strings"
 
+	api_models "github.com/epfl-si/go-toolbox/api/models"
 	"github.com/epfl-si/go-toolbox/log"
 	"github.com/gin-gonic/gin"
 	"github.com/wI2L/jsondiff"
@@ -120,5 +121,15 @@ func GetMockGeneric(logger *zap.Logger, c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"details": "cannot read mock file '" + filePath + "'"})
 		return
 	}
-	c.Data(http.StatusOK, "application/json", b)
+
+	httpStatus := http.StatusOK
+
+	// If it can Unmarshal the response into an error, then it means it is an error and we want to retrieve its Status
+	var apiError api_models.Error
+	err = json.Unmarshal(b, &apiError)
+	if err == nil {
+		httpStatus = apiError.Status
+	}
+
+	c.Data(httpStatus, "application/json", b)
 }
