@@ -111,9 +111,14 @@ func GetMockGeneric(logger *zap.Logger, c *gin.Context) {
 	}
 	filePath = strings.ReplaceAll(filePath, "/", "_") + ".json"
 
-	// TODO : params, in alphabetical order
+	// Add params in path
+	params := ""
+	queryParams := c.Request.URL.Query()
+	for key, value := range queryParams {
+		params += fmt.Sprintf("_%s=%s", key, value)
+	}
 
-	filePath = "/home/dinfo/mocks/" + version + "/GET_" + filePath
+	filePath = "/home/dinfo/mocks/" + version + "/GET_" + filePath + params
 
 	b, err := os.ReadFile(filePath)
 	if err != nil {
