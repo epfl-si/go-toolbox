@@ -121,6 +121,7 @@ func GetMockGeneric(logger *zap.Logger, c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"details": "cannot read mock file '" + filePath + "'"})
 		return
 	}
+	log.LogApiDebug(logger, c, "Mock file read successfully: '"+filePath+"'")
 
 	httpStatus := http.StatusOK
 
