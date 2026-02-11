@@ -221,7 +221,10 @@ func CorsMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		ctx.Writer.Header().Set("Access-Control-Allow-Methods", "*")
-		ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization")
+		// Based on #IDP240 (INC0721045)
+		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Access-Control-Allow-Headers
+		// And testing on groups.epfl.ch
+		ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Cache-Control, Content-Language, Content-Type, Origin, Pragma, Priority, X-Krakend-Id, X-Krakend-UserId, X-Krakend-UserType, X-Krakend-UUID, X-Krakend-Scopes, X-Krakend-SeeAs, X-Requested-With")
 
 		// Don't call c.Next() for OPTIONS requests (only need CORS headers)
 		if ctx.Request.Method != "OPTIONS" {
