@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	api "github.com/epfl-si/go-toolbox/api/models"
 )
@@ -14,13 +16,14 @@ type AuthorizationsResponse struct {
 	Count          int64                `json:"count"`
 }
 
-// GetAuthorizations: retrieves authorizations based on provided parameters
+// GetAuthorizations: retrieves authorizations based on provided parameters with default 30s timeout
 //
 // Parameters:
 // - persIds string: the person IDs (scipers separated by a comma)
 // - resIds string: the resource IDs (resource IDs separated by a comma)
 // - authType string: the authorization type (right, role, property, status)
 // - authIds string: the authorization IDs (authorization IDs or names separated by a comma)
+// - expand bool: whether to expand the response
 //
 // Return type(s):
 // - []*api.Authorization: slice of authorizations
@@ -28,6 +31,27 @@ type AuthorizationsResponse struct {
 // - int: response http status code
 // - error: any error encountered
 func GetAuthorizations(persIds string, resIds string, authType string, authIds string, expand bool) ([]*api.Authorization, int64, int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return GetAuthorizationsWithCtx(ctx, persIds, resIds, authType, authIds, expand)
+}
+
+// GetAuthorizationsWithCtx: retrieves authorizations based on provided parameters with context support
+//
+// Parameters:
+// - ctx context.Context: context for cancellation and timeout
+// - persIds string: the person IDs (scipers separated by a comma)
+// - resIds string: the resource IDs (resource IDs separated by a comma)
+// - authType string: the authorization type (right, role, property, status)
+// - authIds string: the authorization IDs (authorization IDs or names separated by a comma)
+// - expand bool: whether to expand the response
+//
+// Return type(s):
+// - []*api.Authorization: slice of authorizations
+// - int64: count
+// - int: response http status code
+// - error: any error encountered
+func GetAuthorizationsWithCtx(ctx context.Context, persIds string, resIds string, authType string, authIds string, expand bool) ([]*api.Authorization, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusBadRequest, err
@@ -38,16 +62,16 @@ func GetAuthorizations(persIds string, resIds string, authType string, authIds s
 		params = "&expand=1"
 	}
 
-	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/authorizations?persid=%s&resid=%s&type=%s&authid=%s&alldata=1"+params, persIds, resIds, authType, authIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err := CallApiWithCtx(ctx, "GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/authorizations?persid=%s&resid=%s&type=%s&authid=%s&alldata=1"+params, persIds, resIds, authType, authIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAuthorizations: CallApi: %s", err.Error())
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAuthorizationsWithCtx: CallApiWithCtx: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities AuthorizationsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAuthorizations: Unmarshal: %s", err.Error())
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAuthorizationsWithCtx: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Authorizations, entities.Count, res.StatusCode, nil
