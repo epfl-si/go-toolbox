@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	api "github.com/epfl-si/go-toolbox/api/models"
 )
@@ -48,7 +50,7 @@ type GroupsResponse struct {
 	Count  int64        `json:"count"`
 }
 
-// GetGroups: retrieves groups
+// GetGroups: retrieves groups with default 30s timeout
 //
 // Parameters:
 // - name string: name of a group
@@ -62,6 +64,26 @@ type GroupsResponse struct {
 // - int: response http status code
 // - error: any error encountered
 func GetGroups(name, owner, admin, member string) ([]*api.Group, int64, int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return GetGroupsWithCtx(ctx, name, owner, admin, member)
+}
+
+// GetGroupsWithCtx: retrieves groups with context support for cancellation
+//
+// Parameters:
+// - ctx context.Context: context for cancellation and timeout
+// - name string: name of a group
+// - owner string: sciper of the owner of a group
+// - admin string: sciper of the admin of a group
+// - member string: ID of a member of a group
+//
+// Return type(s):
+// - []*api.Group: groups
+// - int64: count
+// - int: response http status code
+// - error: any error encountered
+func GetGroupsWithCtx(ctx context.Context, name, owner, admin, member string) ([]*api.Group, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusBadRequest, err
@@ -70,16 +92,16 @@ func GetGroups(name, owner, admin, member string) ([]*api.Group, int64, int, err
 	var resBytes []byte
 	res := &http.Response{}
 
-	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups?name=%s&owner=%s&admin=%s&member=%s&pagesize=0", name, owner, admin, member), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+	resBytes, res, err = CallApiWithCtx(ctx, "GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups?name=%s&owner=%s&admin=%s&member=%s&pagesize=0", name, owner, admin, member), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGroups: CallApi: %s", err.Error())
+		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupsWithCtx: CallApiWithCtx: %s", err.Error())
 	}
 
 	// unmarshall response
 	var entities GroupsResponse
 	err = json.Unmarshal(resBytes, &entities)
 	if err != nil {
-		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetGroups: Unmarshal: %s", err.Error())
+		return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetGroupsWithCtx: Unmarshal: %s", err.Error())
 	}
 
 	return entities.Groups, entities.Count, res.StatusCode, nil

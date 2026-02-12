@@ -1,11 +1,13 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	api_models "github.com/epfl-si/go-toolbox/api/models"
 )
@@ -68,7 +70,7 @@ type AccredsV0Response struct {
 	Count   int64                  `json:"count"`
 }
 
-// GetAccreds retrieves accreditations for the given persons and unit IDs.
+// GetAccreds retrieves accreditations for the given persons and unit IDs with default 30s timeout.
 //
 // Parameters:
 // - persIds string: the person IDs (scipers separated by a comma)
@@ -81,6 +83,25 @@ type AccredsV0Response struct {
 // - int: response http status code
 // - error: any error encountered
 func GetAccreds(persIds string, unitIds string, params map[string]string) ([]*api_models.Accred, int64, int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return GetAccredsWithCtx(ctx, persIds, unitIds, params)
+}
+
+// GetAccredsWithCtx retrieves accreditations for the given persons and unit IDs with context support.
+//
+// Parameters:
+// - ctx context.Context: context for cancellation and timeout
+// - persIds string: the person IDs (scipers separated by a comma)
+// - unitIds string: the unit IDs (unit IDs separated by a comma)
+// - params map[string]string: any other parameter available on /v1/accreds (eg. state=active,inactive)
+//
+// Return type(s):
+// - []*api_models.Accred: slice of accreditations
+// - int64: count
+// - int: response http status code
+// - error: any error encountered
+func GetAccredsWithCtx(ctx context.Context, persIds string, unitIds string, params map[string]string) ([]*api_models.Accred, int64, int, error) {
 	err := checkEnvironment()
 	if err != nil {
 		return nil, 0, http.StatusBadRequest, err
@@ -99,9 +120,9 @@ func GetAccreds(persIds string, unitIds string, params map[string]string) ([]*ap
 		res.StatusCode = http.StatusOK
 		resBytes = []byte(os.Getenv("LOCAL_DATA"))
 	} else {
-		resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds?persid=%s&unitid=%s&alldata=1&pagesize=0%s", persIds, unitIds, otherParams), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
+		resBytes, res, err = CallApiWithCtx(ctx, "GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds?persid=%s&unitid=%s&alldata=1&pagesize=0%s", persIds, unitIds, otherParams), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 		if err != nil {
-			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccreds: CallApi: %s", err.Error())
+			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccredsWithCtx: CallApiWithCtx: %s", err.Error())
 		}
 	}
 
@@ -114,7 +135,7 @@ func GetAccreds(persIds string, unitIds string, params map[string]string) ([]*ap
 		err2 := json.Unmarshal(resBytes, &entitiesV0)
 		if err2 != nil {
 			// if error, try to unmarshall from AccredV0 (which refers to PositionV0 where restricted field is a string)
-			return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccreds: Unmarshal: %s", err.Error())
+			return nil, 0, http.StatusInternalServerError, fmt.Errorf("go-toolbox: GetAccredsWithCtx: Unmarshal: %s", err.Error())
 		}
 
 		entities.Accreds = make([]*api_models.Accred, 0)
