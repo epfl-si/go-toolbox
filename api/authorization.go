@@ -16,7 +16,7 @@ type AuthorizationsResponse struct {
 	Count          int64                `json:"count"`
 }
 
-// GetAuthorizations: retrieves authorizations based on provided parameters with default 30s timeout
+// GetAuthorizations: retrieves authorizations based on provided parameters with default 240s timeout
 //
 // Parameters:
 // - persIds string: the person IDs (scipers separated by a comma)
@@ -31,7 +31,7 @@ type AuthorizationsResponse struct {
 // - int: response http status code
 // - error: any error encountered
 func GetAuthorizations(persIds string, resIds string, authType string, authIds string, expand bool) ([]*api.Authorization, int64, int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
 	defer cancel()
 	return GetAuthorizationsWithCtx(ctx, persIds, resIds, authType, authIds, expand)
 }

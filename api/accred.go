@@ -70,7 +70,7 @@ type AccredsV0Response struct {
 	Count   int64                  `json:"count"`
 }
 
-// GetAccreds retrieves accreditations for the given persons and unit IDs with default 30s timeout.
+// GetAccreds retrieves accreditations for the given persons and unit IDs with default 240s timeout.
 //
 // Parameters:
 // - persIds string: the person IDs (scipers separated by a comma)
@@ -83,7 +83,7 @@ type AccredsV0Response struct {
 // - int: response http status code
 // - error: any error encountered
 func GetAccreds(persIds string, unitIds string, params map[string]string) ([]*api_models.Accred, int64, int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
 	defer cancel()
 	return GetAccredsWithCtx(ctx, persIds, unitIds, params)
 }

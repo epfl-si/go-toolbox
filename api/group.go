@@ -50,7 +50,7 @@ type GroupsResponse struct {
 	Count  int64        `json:"count"`
 }
 
-// GetGroups: retrieves groups with default 30s timeout
+// GetGroups: retrieves groups with default 240s timeout
 //
 // Parameters:
 // - name string: name of a group
@@ -64,7 +64,7 @@ type GroupsResponse struct {
 // - int: response http status code
 // - error: any error encountered
 func GetGroups(name, owner, admin, member string) ([]*api.Group, int64, int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
 	defer cancel()
 	return GetGroupsWithCtx(ctx, name, owner, admin, member)
 }
