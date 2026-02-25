@@ -237,7 +237,7 @@ func (c *UnifiedClaims) UnmarshalJSON(data []byte) error {
 	if c.Email == "" {
 		var m map[string]interface{}
 		if err := json.Unmarshal(data, &m); err == nil {
-			for _, key := range []string{"email", "useremail", "mail", "upn"} {
+			for _, key := range []string{"email", "useremail", "mail", "upn", "usermail"} {
 				if v, ok := m[key]; ok {
 					if email, ok := v.(string); ok && email != "" {
 						c.Email = email
