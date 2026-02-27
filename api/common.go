@@ -61,6 +61,9 @@ func CallApi(verb string, url string, payload string, userId string, password st
 
 	resp, err := client.Do(req)
 	if err != nil {
+		if resp != nil {
+			resp.Body.Close()
+		}
 		fmt.Printf("error calling %s: %s", url, err.Error())
 		return nil, resp, err
 	}
@@ -105,6 +108,9 @@ func CallApiWithCtx(ctx context.Context, verb string, url string, payload string
 
 	resp, err := client.Do(req)
 	if err != nil {
+		if resp != nil {
+			resp.Body.Close()
+		}
 		fmt.Printf("error calling %s: %s", url, err.Error())
 		return nil, resp, err
 	}
