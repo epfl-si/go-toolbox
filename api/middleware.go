@@ -252,8 +252,6 @@ func LoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		} else {
 			log.LogApiInfo(logger, ctx, "")
 		}
-
-		ctx.Next()
 	}
 }
 
