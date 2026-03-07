@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const maxResponseBodySize = 1 * 1024 * 1024 // 1MB — EPFL API responses are structured JSON for a single person; realistic max is ~100KB
+
 var (
 	httpClient     *http.Client
 	httpClientOnce sync.Once
@@ -69,13 +71,17 @@ func CallApi(verb string, url string, payload string, userId string, password st
 	}
 	defer resp.Body.Close()
 
-	resBytes, err := io.ReadAll(resp.Body)
+	limited := &io.LimitedReader{R: resp.Body, N: maxResponseBodySize + 1}
+	resBytes, err := io.ReadAll(limited)
 	if err != nil {
 		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s, HTTP Version: %s (Major: %d, Minor: %d)", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"), resp.Proto, resp.ProtoMajor, resp.ProtoMinor)
 	}
+	if limited.N == 0 {
+		return nil, resp, fmt.Errorf("error calling %s: response body exceeded %d bytes limit", url, maxResponseBodySize)
+	}
 
 	if resp.StatusCode >= 400 {
-		return resBytes, resp, fmt.Errorf("error calling %s: statusCode: %d, body: %s", url, resp.StatusCode, string(resBytes))
+		return resBytes, resp, fmt.Errorf("error calling %s: statusCode: %d, body: %s", url, resp.StatusCode, resBytes)
 	}
 
 	return resBytes, resp, nil
@@ -116,13 +122,17 @@ func CallApiWithCtx(ctx context.Context, verb string, url string, payload string
 	}
 	defer resp.Body.Close()
 
-	resBytes, err := io.ReadAll(resp.Body)
+	limited := &io.LimitedReader{R: resp.Body, N: maxResponseBodySize + 1}
+	resBytes, err := io.ReadAll(limited)
 	if err != nil {
 		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s, HTTP Version: %s (Major: %d, Minor: %d)", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"), resp.Proto, resp.ProtoMajor, resp.ProtoMinor)
 	}
+	if limited.N == 0 {
+		return nil, resp, fmt.Errorf("error calling %s: response body exceeded %d bytes limit", url, maxResponseBodySize)
+	}
 
 	if resp.StatusCode >= 400 {
-		return resBytes, resp, fmt.Errorf("error calling %s: statusCode: %d, body: %s", url, resp.StatusCode, string(resBytes))
+		return resBytes, resp, fmt.Errorf("error calling %s: statusCode: %d, body: %s", url, resp.StatusCode, resBytes)
 	}
 
 	return resBytes, resp, nil
