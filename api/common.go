@@ -37,6 +37,22 @@ func getHTTPClient() *http.Client {
 	return httpClient
 }
 
+// oversizedResponseDiag builds a diagnostic string for responses that exceeded the size limit.
+// It includes the Content-Length header, an approximate item count, and a body preview.
+func oversizedResponseDiag(resp *http.Response, partial []byte) string {
+	contentLength := resp.Header.Get("Content-Length")
+	if contentLength == "" {
+		contentLength = fmt.Sprintf("%d", resp.ContentLength)
+	}
+	// Approximate item count: JSON arrays look like [{...},{...}] so "},{" appears N-1 times.
+	itemCount := bytes.Count(partial, []byte("},{")) + 1
+	preview := partial
+	if len(preview) > 256 {
+		preview = preview[:256]
+	}
+	return fmt.Sprintf("content-length=%s approx-items=%d body-preview=%s", contentLength, itemCount, preview)
+}
+
 // CallApi calls the API with the specified HTTP verb, URL, payload, user ID, and password.
 //
 // It returns a pointer to http.Response and an error.
@@ -77,7 +93,7 @@ func CallApi(verb string, url string, payload string, userId string, password st
 		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s, HTTP Version: %s (Major: %d, Minor: %d)", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"), resp.Proto, resp.ProtoMajor, resp.ProtoMinor)
 	}
 	if limited.N == 0 {
-		return nil, resp, fmt.Errorf("error calling %s: response body exceeded %d bytes limit", url, maxResponseBodySize)
+		return nil, resp, fmt.Errorf("error calling %s: response body exceeded %d bytes limit: %s", url, maxResponseBodySize, oversizedResponseDiag(resp, resBytes))
 	}
 
 	if resp.StatusCode >= 400 {
@@ -128,7 +144,7 @@ func CallApiWithCtx(ctx context.Context, verb string, url string, payload string
 		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s, HTTP Version: %s (Major: %d, Minor: %d)", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"), resp.Proto, resp.ProtoMajor, resp.ProtoMinor)
 	}
 	if limited.N == 0 {
-		return nil, resp, fmt.Errorf("error calling %s: response body exceeded %d bytes limit", url, maxResponseBodySize)
+		return nil, resp, fmt.Errorf("error calling %s: response body exceeded %d bytes limit: %s", url, maxResponseBodySize, oversizedResponseDiag(resp, resBytes))
 	}
 
 	if resp.StatusCode >= 400 {
