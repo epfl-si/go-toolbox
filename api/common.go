@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -19,8 +22,7 @@ var (
 	httpClientOnce sync.Once
 )
 
-// GetHTTPClient returns the shared HTTP client singleton.
-func GetHTTPClient() *http.Client {
+func getHTTPClient() *http.Client {
 	httpClientOnce.Do(func() {
 		transport := &http.Transport{
 			ForceAttemptHTTP2:   false,                                                  // Disable HTTP/2
@@ -58,7 +60,7 @@ func oversizedResponseDiag(resp *http.Response, partial []byte) string {
 //
 // It returns a pointer to http.Response and an error.
 func CallApi(verb string, url string, payload string, userId string, password string) ([]byte, *http.Response, error) {
-	client := GetHTTPClient()
+	client := getHTTPClient()
 
 	bodyReader := bytes.NewReader([]byte(payload))
 	req, err := http.NewRequest(verb, url, bodyReader)
@@ -109,7 +111,7 @@ func CallApi(verb string, url string, payload string, userId string, password st
 //
 // It returns a pointer to http.Response and an error.
 func CallApiWithCtx(ctx context.Context, verb string, url string, payload string, userId string, password string) ([]byte, *http.Response, error) {
-	client := GetHTTPClient()
+	client := getHTTPClient()
 
 	bodyReader := bytes.NewReader([]byte(payload))
 	req, err := http.NewRequestWithContext(ctx, verb, url, bodyReader)
@@ -155,53 +157,132 @@ func CallApiWithCtx(ctx context.Context, verb string, url string, payload string
 	return resBytes, resp, nil
 }
 
-// CallApiWithToken calls the API with the specified HTTP verb, URL, payload, and bearer token.
-// It behaves like CallApi but uses Bearer token authentication instead of basic auth.
-func CallApiWithToken(verb string, url string, payload string, token string) ([]byte, *http.Response, error) {
-	client := GetHTTPClient()
+// tokenResponse represents the OAuth2 token response for client credentials flow
+type tokenResponse struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
+}
 
-	bodyReader := bytes.NewReader([]byte(payload))
-	req, err := http.NewRequest(verb, url, bodyReader)
+// userTokenResponse represents the OAuth2 token response including id_token (authorization code flow)
+type userTokenResponse struct {
+	AccessToken string `json:"access_token"`
+	IDToken     string `json:"id_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
+}
+
+// GetToken implements OAuth2 client credentials flow to obtain an access token.
+// It makes a POST request to the token endpoint and returns the access token.
+// Token expiration and refresh logic should be handled by the caller.
+func GetToken(ctx context.Context, tokenURL, clientID, clientSecret, scope string) (string, error) {
+	if tokenURL == "" {
+		return "", fmt.Errorf("tokenURL must not be empty")
+	}
+	if clientID == "" {
+		return "", fmt.Errorf("clientID must not be empty")
+	}
+	if clientSecret == "" {
+		return "", fmt.Errorf("clientSecret must not be empty")
+	}
+
+	formData := url.Values{}
+	formData.Set("grant_type", "client_credentials")
+	formData.Set("client_id", clientID)
+	formData.Set("client_secret", clientSecret)
+	formData.Set("scope", scope)
+
+	client := getHTTPClient()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", tokenURL, strings.NewReader(formData.Encode()))
 	if err != nil {
-		return nil, nil, err
+		return "", fmt.Errorf("failed to create token request: %w", err)
 	}
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Add("Accept-Encoding", "identity")
-	// cache control
-	if os.Getenv("API_NOCACHE") == "1" {
-		req.Header.Add("Cache-Control", "no-cache")
-	}
-
-	// Set bearer token authentication
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		if resp != nil {
-			resp.Body.Close()
-		}
-		fmt.Printf("error calling %s: %s", url, err.Error())
-		return nil, resp, err
+		return "", fmt.Errorf("failed to request token: %w", err)
 	}
 	defer resp.Body.Close()
 
-	limited := &io.LimitedReader{R: resp.Body, N: maxResponseBodySize + 1}
-	resBytes, err := io.ReadAll(limited)
+	resBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s, HTTP Version: %s (Major: %d, Minor: %d)", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"), resp.Proto, resp.ProtoMajor, resp.ProtoMinor)
-	}
-	if limited.N == 0 {
-		return nil, resp, fmt.Errorf("error calling %s: response body exceeded %d bytes limit: %s", url, maxResponseBodySize, oversizedResponseDiag(resp, resBytes))
+		return "", fmt.Errorf("failed to read token response: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return resBytes, resp, fmt.Errorf("error calling %s: statusCode: %d, body: %s", url, resp.StatusCode, resBytes)
+		return "", fmt.Errorf("token request failed with status %d: %s", resp.StatusCode, string(resBytes))
 	}
 
-	return resBytes, resp, nil
+	var tokenResp tokenResponse
+	if err := json.Unmarshal(resBytes, &tokenResp); err != nil {
+		return "", fmt.Errorf("failed to parse token response: %w", err)
+	}
+
+	return tokenResp.AccessToken, nil
+}
+
+// ExchangeAuthCode redeems an OAuth2 authorization code for access and id tokens.
+// It uses the authorization_code grant type (server-side redemption).
+func ExchangeAuthCode(ctx context.Context, tenantID, clientID, clientSecret, code, redirectURI, scope string) (string, string, error) {
+	if tenantID == "" {
+		return "", "", fmt.Errorf("tenantID must not be empty")
+	}
+	if clientID == "" {
+		return "", "", fmt.Errorf("clientID must not be empty")
+	}
+	if clientSecret == "" {
+		return "", "", fmt.Errorf("clientSecret must not be empty")
+	}
+	if code == "" {
+		return "", "", fmt.Errorf("code must not be empty")
+	}
+	if redirectURI == "" {
+		return "", "", fmt.Errorf("redirectURI must not be empty")
+	}
+
+	tokenURL := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", tenantID)
+
+	formData := url.Values{}
+	formData.Set("grant_type", "authorization_code")
+	formData.Set("client_id", clientID)
+	formData.Set("client_secret", clientSecret)
+	formData.Set("code", code)
+	formData.Set("redirect_uri", redirectURI)
+	formData.Set("scope", scope)
+
+	client := getHTTPClient()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", tokenURL, strings.NewReader(formData.Encode()))
+	if err != nil {
+		return "", "", fmt.Errorf("failed to create auth code request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", "", fmt.Errorf("auth code exchange request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	resBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read auth code response: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		return "", "", fmt.Errorf("auth code exchange returned %d: %s", resp.StatusCode, string(resBytes))
+	}
+
+	var tokenResp userTokenResponse
+	if err := json.Unmarshal(resBytes, &tokenResp); err != nil {
+		return "", "", fmt.Errorf("failed to parse auth code response: %w", err)
+	}
+
+	return tokenResp.AccessToken, tokenResp.IDToken, nil
 }
 
 // checkEnvironment checks the environment for required variables.
