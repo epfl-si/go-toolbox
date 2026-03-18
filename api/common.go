@@ -19,7 +19,8 @@ var (
 	httpClientOnce sync.Once
 )
 
-func getHTTPClient() *http.Client {
+// GetHTTPClient returns the shared HTTP client singleton.
+func GetHTTPClient() *http.Client {
 	httpClientOnce.Do(func() {
 		transport := &http.Transport{
 			ForceAttemptHTTP2:   false,                                                  // Disable HTTP/2
@@ -57,7 +58,7 @@ func oversizedResponseDiag(resp *http.Response, partial []byte) string {
 //
 // It returns a pointer to http.Response and an error.
 func CallApi(verb string, url string, payload string, userId string, password string) ([]byte, *http.Response, error) {
-	client := getHTTPClient()
+	client := GetHTTPClient()
 
 	bodyReader := bytes.NewReader([]byte(payload))
 	req, err := http.NewRequest(verb, url, bodyReader)
@@ -108,7 +109,7 @@ func CallApi(verb string, url string, payload string, userId string, password st
 //
 // It returns a pointer to http.Response and an error.
 func CallApiWithCtx(ctx context.Context, verb string, url string, payload string, userId string, password string) ([]byte, *http.Response, error) {
-	client := getHTTPClient()
+	client := GetHTTPClient()
 
 	bodyReader := bytes.NewReader([]byte(payload))
 	req, err := http.NewRequestWithContext(ctx, verb, url, bodyReader)
@@ -126,6 +127,55 @@ func CallApiWithCtx(ctx context.Context, verb string, url string, payload string
 	// if credentials defined, pass them
 	if userId != "" {
 		req.SetBasicAuth(userId, password)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		fmt.Printf("error calling %s: %s", url, err.Error())
+		return nil, resp, err
+	}
+	defer resp.Body.Close()
+
+	limited := &io.LimitedReader{R: resp.Body, N: maxResponseBodySize + 1}
+	resBytes, err := io.ReadAll(limited)
+	if err != nil {
+		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s, HTTP Version: %s (Major: %d, Minor: %d)", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"), resp.Proto, resp.ProtoMajor, resp.ProtoMinor)
+	}
+	if limited.N == 0 {
+		return nil, resp, fmt.Errorf("error calling %s: response body exceeded %d bytes limit: %s", url, maxResponseBodySize, oversizedResponseDiag(resp, resBytes))
+	}
+
+	if resp.StatusCode >= 400 {
+		return resBytes, resp, fmt.Errorf("error calling %s: statusCode: %d, body: %s", url, resp.StatusCode, resBytes)
+	}
+
+	return resBytes, resp, nil
+}
+
+// CallApiWithToken calls the API with the specified HTTP verb, URL, payload, and bearer token.
+// It behaves like CallApi but uses Bearer token authentication instead of basic auth.
+func CallApiWithToken(verb string, url string, payload string, token string) ([]byte, *http.Response, error) {
+	client := GetHTTPClient()
+
+	bodyReader := bytes.NewReader([]byte(payload))
+	req, err := http.NewRequest(verb, url, bodyReader)
+	if err != nil {
+		return nil, nil, err
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Add("Accept-Encoding", "identity")
+	// cache control
+	if os.Getenv("API_NOCACHE") == "1" {
+		req.Header.Add("Cache-Control", "no-cache")
+	}
+
+	// Set bearer token authentication
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
 	resp, err := client.Do(req)
