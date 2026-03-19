@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-const maxResponseBodySize = 4 * 1024 * 1024 // 4MB — oversized responses are logged but not treated as errors
+const maxResponseBodySize = 4 * 1024 * 1024 // 4MB — responses exceeding this size are logged as warnings
 
 var (
 	httpClient     *http.Client
@@ -90,13 +90,12 @@ func CallApi(verb string, url string, payload string, userId string, password st
 	}
 	defer resp.Body.Close()
 
-	limited := &io.LimitedReader{R: resp.Body, N: maxResponseBodySize + 1}
-	resBytes, err := io.ReadAll(limited)
+	resBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s, HTTP Version: %s (Major: %d, Minor: %d)", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"), resp.Proto, resp.ProtoMajor, resp.ProtoMinor)
 	}
-	if limited.N == 0 {
-		fmt.Printf("warning: response from %s exceeded %d bytes limit (truncated): %s\n", url, maxResponseBodySize, oversizedResponseDiag(resp, resBytes))
+	if len(resBytes) > maxResponseBodySize {
+		fmt.Printf("warning: response from %s exceeded %d bytes: %s\n", url, maxResponseBodySize, oversizedResponseDiag(resp, resBytes))
 	}
 
 	if resp.StatusCode >= 400 {
@@ -141,13 +140,12 @@ func CallApiWithCtx(ctx context.Context, verb string, url string, payload string
 	}
 	defer resp.Body.Close()
 
-	limited := &io.LimitedReader{R: resp.Body, N: maxResponseBodySize + 1}
-	resBytes, err := io.ReadAll(limited)
+	resBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s, HTTP Version: %s (Major: %d, Minor: %d)", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"), resp.Proto, resp.ProtoMajor, resp.ProtoMinor)
 	}
-	if limited.N == 0 {
-		fmt.Printf("warning: response from %s exceeded %d bytes limit (truncated): %s\n", url, maxResponseBodySize, oversizedResponseDiag(resp, resBytes))
+	if len(resBytes) > maxResponseBodySize {
+		fmt.Printf("warning: response from %s exceeded %d bytes: %s\n", url, maxResponseBodySize, oversizedResponseDiag(resp, resBytes))
 	}
 
 	if resp.StatusCode >= 400 {
