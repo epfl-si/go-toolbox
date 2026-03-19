@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-const maxResponseBodySize = 1 * 1024 * 1024 // 1MB — EPFL API responses are structured JSON for a single person; realistic max is ~100KB
+const maxResponseBodySize = 4 * 1024 * 1024 // 4MB — oversized responses are logged but not treated as errors
 
 var (
 	httpClient     *http.Client
@@ -96,7 +96,7 @@ func CallApi(verb string, url string, payload string, userId string, password st
 		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s, HTTP Version: %s (Major: %d, Minor: %d)", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"), resp.Proto, resp.ProtoMajor, resp.ProtoMinor)
 	}
 	if limited.N == 0 {
-		return nil, resp, fmt.Errorf("error calling %s: response body exceeded %d bytes limit: %s", url, maxResponseBodySize, oversizedResponseDiag(resp, resBytes))
+		fmt.Printf("warning: response from %s exceeded %d bytes limit (truncated): %s\n", url, maxResponseBodySize, oversizedResponseDiag(resp, resBytes))
 	}
 
 	if resp.StatusCode >= 400 {
@@ -147,7 +147,7 @@ func CallApiWithCtx(ctx context.Context, verb string, url string, payload string
 		return nil, resp, fmt.Errorf("error calling %s: ReadAll body: %s, response.Content-Length: %d, response.Transfer-Encoding: %s, HTTP Version: %s (Major: %d, Minor: %d)", url, err.Error(), resp.ContentLength, resp.Header.Get("Transfer-Encoding"), resp.Proto, resp.ProtoMajor, resp.ProtoMinor)
 	}
 	if limited.N == 0 {
-		return nil, resp, fmt.Errorf("error calling %s: response body exceeded %d bytes limit: %s", url, maxResponseBodySize, oversizedResponseDiag(resp, resBytes))
+		fmt.Printf("warning: response from %s exceeded %d bytes limit (truncated): %s\n", url, maxResponseBodySize, oversizedResponseDiag(resp, resBytes))
 	}
 
 	if resp.StatusCode >= 400 {
