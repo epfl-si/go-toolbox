@@ -26,7 +26,7 @@ func GetGuest(id string) (*api.Guest, int, error) {
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/guests/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGuest: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetGuest: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -66,7 +66,7 @@ func GetGuests(query string, status string) ([]*api.Guest, int64, int, error) {
 
 	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/guests?query=%s&status=%s", query, status), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGuests: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetGuests: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -100,7 +100,7 @@ func GetGuestsByIds(ids string) ([]*api.Guest, int64, int, error) {
 
 	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/guests", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGuestsByIds: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetGuestsByIds: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response

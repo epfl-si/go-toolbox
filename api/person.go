@@ -26,7 +26,7 @@ func GetPerson(persId string) (*api.Person, int, error) {
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons/%s", persId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetPerson: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetPerson: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -73,7 +73,7 @@ func GetPersons(query, firstname, lastname, unitIds string, isAccredited bool) (
 	}
 	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/persons?query=%s&firstname=%s&lastname=%s&isaccredited=%s&unitid=%s", query, firstname, lastname, isAccreditedValue, unitIds), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetPersons: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetPersons: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -107,7 +107,7 @@ func GetPersonsByIds(ids string) ([]*api.Person, int64, int, error) {
 
 	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/persons", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetPersonsByIds: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetPersonsByIds: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -150,7 +150,7 @@ func GetHomonyms(firstname, lastname string) ([]*api.Homonym, int64, int, error)
 	}
 	resBytes, res, err = CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/homonyms?"+suffix, "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetHomonyms: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetHomonyms: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response

@@ -26,7 +26,7 @@ func GetUnit(unitId string) (*api.Unit, int, error) {
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/units/%s", unitId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetUnit: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetUnit: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -65,7 +65,7 @@ func GetUnits(query string) ([]*api.Unit, int64, int, error) {
 
 	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/units?query=%s", query), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetUnits: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetUnits: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -99,7 +99,7 @@ func GetUnitsByIds(ids string) ([]*api.Unit, int64, int, error) {
 
 	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/units", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetUnitsByIds: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetUnitsByIds: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -129,7 +129,7 @@ func GetFund(id string) (*api.Fund, int, error) {
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/funds/%s", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetFund: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetFund: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -170,7 +170,7 @@ func GetFunds(label, unitIds, cfs string) ([]*api.Fund, int64, int, error) {
 
 	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/funds?label=%s&unitids=%s&cfs=%s", label, unitIds, cfs), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetFunds: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetFunds: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -204,7 +204,7 @@ func GetFundsByIds(ids string) ([]*api.Fund, int64, int, error) {
 
 	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/funds", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetFundsByIds: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetFundsByIds: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -235,7 +235,7 @@ func GetUnitTypes(query string) ([]*api.UnitType, int, error) {
 
 	resBytes, res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/unittypes", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetUnitTypes: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetUnitTypes: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response

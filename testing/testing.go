@@ -129,7 +129,7 @@ func MockGeneric(logger *zap.Logger, c *gin.Context, method string) {
 
 	// Collect keys
 	for key := range queryParams {
-		if queryParams[key][0] != "" {
+		if len(queryParams[key]) > 0 && queryParams[key][0] != "" {
 			keys = append(keys, key)
 		}
 	}

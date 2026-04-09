@@ -39,7 +39,7 @@ func GetAccred(accredId string) (*api_models.Accred, int, error) {
 	} else {
 		resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds/%s", accredId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 		if err != nil {
-			return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetAccred: CallApi: %s", err.Error())
+			return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetAccred: CallApi: %s", err.Error())
 		}
 	}
 
@@ -122,7 +122,7 @@ func GetAccredsWithCtx(ctx context.Context, persIds string, unitIds string, para
 	} else {
 		resBytes, res, err = CallApiWithCtx(ctx, "GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/accreds?persid=%s&unitid=%s&alldata=1&pagesize=0%s", persIds, unitIds, otherParams), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 		if err != nil {
-			return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccredsWithCtx: CallApiWithCtx: %s", err.Error())
+			return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetAccredsWithCtx: CallApiWithCtx: %s", err.Error())
 		}
 	}
 
@@ -162,7 +162,7 @@ func GetAccredsWithCtx(ctx context.Context, persIds string, unitIds string, para
 func GetAccredsFromUrl(url string) ([]*api_models.Accred, int64, int, error) {
 	resBytes, res, err := CallApi("GET", url, "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccredsFromUrl: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetAccredsFromUrl: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -254,7 +254,7 @@ func GetAccredPrivateEmails(persId string) ([]api_models.PrivateEmail, int64, in
 
 	resBytes, res, err = CallApi("GET", url, "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return privateEmailsResponse.PrivateEmails, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetAccredPrivateEmails: CallApi: %s", err.Error())
+		return privateEmailsResponse.PrivateEmails, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetAccredPrivateEmails: CallApi: %s", err.Error())
 	}
 
 	err = json.Unmarshal(resBytes, &privateEmailsResponse)

@@ -26,7 +26,7 @@ func GetService(serviceId string) (*api.Service, int, error) {
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/services/%s", serviceId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetService: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetService: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -68,7 +68,7 @@ func GetServices(name, unitIds, persIds, network string) ([]*api.Service, int64,
 
 	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/services?name=%s&unitid=%s&persid=%s&network=%s", name, unitIds, persIds, network), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetServices: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetServices: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -102,7 +102,7 @@ func GetServicesByIds(ids string) ([]*api.Service, int64, int, error) {
 
 	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/services", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetServicesByIds: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetServicesByIds: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
