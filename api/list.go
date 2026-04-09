@@ -26,7 +26,7 @@ func GetList(listId string) (*api.List, int, error) {
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists/%s", listId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetList: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetList: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -56,7 +56,7 @@ func GetListV2(listId string) (*api.ListV2, int, error) {
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v2/lists/%s", listId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetListV2: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetListV2: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -102,7 +102,7 @@ func GetLists(query, unitId, listType, subtype string) ([]*api.List, int64, int,
 
 	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists?query=%s&unitid=%s&type=%s&subtype=%s", query, unitId, listType, subtype), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetLists: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetLists: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -139,7 +139,7 @@ func GetListsV2(query, unitId, listType, subtype string) ([]*api.ListV2, int64, 
 
 	resBytes, res, err = CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v2/lists?query=%s&unitid=%s&type=%s&subtype=%s", query, unitId, listType, subtype), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetLGetListsV2sts: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetLGetListsV2sts: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -176,7 +176,7 @@ func GetListsByIds(ids string) ([]*api.List, int64, int, error) {
 
 	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/lists", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetListsByIds: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetListsByIds: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -213,7 +213,7 @@ func GetListsV2ByIds(ids string) ([]*api.ListV2, int64, int, error) {
 
 	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v2/lists", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetListsV2ByIds: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetListsV2ByIds: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -247,7 +247,7 @@ func GetListMembers(id string) ([]*api.Person, int, error) {
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/lists/%s/members", id), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetListMembers: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetListMembers: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response

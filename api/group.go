@@ -32,7 +32,7 @@ func GetGroup(groupId string) (*api.Group, int, error) {
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroup: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetGroup: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -94,7 +94,7 @@ func GetGroupsWithCtx(ctx context.Context, name, owner, admin, member string) ([
 
 	resBytes, res, err = CallApiWithCtx(ctx, "GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups?name=%s&owner=%s&admin=%s&member=%s&pagesize=0", name, owner, admin, member), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupsWithCtx: CallApiWithCtx: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetGroupsWithCtx: CallApiWithCtx: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -128,7 +128,7 @@ func GetGroupsByIds(ids string) ([]*api.Group, int64, int, error) {
 
 	resBytes, res, err = CallApi("POST", os.Getenv("API_GATEWAY_URL")+"/v1/getter", `{"endpoint":"/v1/groups", "params": {"ids":"`+ids+`"}}`, os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, 0, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupsByIds: CallApi: %s", err.Error())
+		return nil, 0, statusCodeOf(res), fmt.Errorf("go-toolbox: GetGroupsByIds: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -162,7 +162,7 @@ func GetGroupPersons(groupId string) ([]*api.Member, int, error) {
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/persons?pagesize=0", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupPersons: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetGroupPersons: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -203,7 +203,7 @@ func GetGroupMembers(groupId string, expand, recursive bool) ([]*api.Member, int
 	}
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/members"+query, groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupMembers: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetGroupMembers: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -233,7 +233,7 @@ func GetGroupAdmins(groupId string) ([]*api.Member, int, error) {
 
 	resBytes, res, err := CallApi("GET", fmt.Sprintf(os.Getenv("API_GATEWAY_URL")+"/v1/groups/%s/admins?pagesize=0", groupId), "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupAdmins: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetGroupAdmins: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -264,7 +264,7 @@ func GetMemberships() (map[string][]*api.Group, int, error) {
 
 	resBytes, res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/groups/memberships", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetMemberships: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetMemberships: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response
@@ -295,7 +295,7 @@ func GetGroupsPersons() (map[string][]*api.Member, int, error) {
 
 	resBytes, res, err := CallApi("GET", os.Getenv("API_GATEWAY_URL")+"/v1/groupspersons", "", os.Getenv("API_USERID"), os.Getenv("API_USERPWD"))
 	if err != nil {
-		return nil, res.StatusCode, fmt.Errorf("go-toolbox: GetGroupsPersons: CallApi: %s", err.Error())
+		return nil, statusCodeOf(res), fmt.Errorf("go-toolbox: GetGroupsPersons: CallApi: %s", err.Error())
 	}
 
 	// unmarshall response

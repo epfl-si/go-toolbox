@@ -283,6 +283,17 @@ func ExchangeAuthCode(ctx context.Context, tenantID, clientID, clientSecret, cod
 	return tokenResp.AccessToken, tokenResp.IDToken, nil
 }
 
+// statusCodeOf retourne res.StatusCode, ou http.StatusBadGateway si res est nil.
+// net/http peut retourner une réponse nil en cas d'erreur réseau (ex: DNS, timeout),
+// ce qui provoquerait un nil panic si on accède directement à res.StatusCode dans le
+// chemin d'erreur après un appel à CallApi / CallApiWithCtx.
+func statusCodeOf(res *http.Response) int {
+	if res == nil {
+		return http.StatusBadGateway
+	}
+	return res.StatusCode
+}
+
 // checkEnvironment checks the environment for required variables.
 //
 // Returns an error if something's wrong
