@@ -271,6 +271,18 @@ func GetAuthContext(c *gin.Context) (AuthContext, error) {
 	return nil, fmt.Errorf("no authentication context found")
 }
 
+// MustGetAuthContext extracts the auth context from Gin context or panics.
+// Use in handlers that run behind RequirePermission middleware, where the
+// context is guaranteed to exist. A panic here indicates a misconfigured route
+// (missing middleware), not a runtime error.
+func MustGetAuthContext(c *gin.Context) AuthContext {
+	authCtx, err := GetAuthContext(c)
+	if err != nil || authCtx == nil {
+		panic("authorization.MustGetAuthContext: no auth context found — is RequirePermission middleware applied on this route?")
+	}
+	return authCtx
+}
+
 // SetAuthContext sets the auth context in Gin context
 func SetAuthContext(c *gin.Context, authCtx AuthContext) {
 	c.Set(string(AuthContextKey), authCtx)
