@@ -13,10 +13,11 @@ import (
 
 // Config holds authorization configuration
 type Config struct {
-	RolePermissions map[string][]Permission // Maps roles to the permissions they grant
-	GroupMappings   map[string][]string     // Maps AD groups to internal roles
-	MachineUnits    map[string][]string     // Maps client IDs to allowed unit IDs
-	UnitScopedRoles map[string][]Permission // Maps roles to unit-scoped permissions
+	RolePermissions  map[string][]Permission // Maps roles to the permissions they grant
+	GroupMappings    map[string][]string     // Maps AD groups to internal roles
+	MachineUnits     map[string][]string     // Maps client IDs to allowed unit IDs
+	UnitScopedRoles  map[string][]Permission // Maps roles to unit-scoped permissions
+	DefaultUserRoles []string               // Roles automatically assigned to all user tokens
 }
 
 // NewConfig creates a new authorization config with defaults
@@ -60,9 +61,10 @@ func (c *Config) LoadFromJSONReader(r io.Reader) error {
 			Resource string `json:"resource"`
 			Action   string `json:"action"`
 		} `json:"rolePermissions"`
-		GroupMappings   map[string][]string `json:"groupMappings"`
-		MachineUnits    map[string][]string `json:"machineUnits"`
-		UnitScopedRoles map[string][]struct {
+		GroupMappings    map[string][]string `json:"groupMappings"`
+		MachineUnits     map[string][]string `json:"machineUnits"`
+		DefaultUserRoles []string            `json:"defaultUserRoles"`
+		UnitScopedRoles  map[string][]struct {
 			Resource string `json:"resource"`
 			Action   string `json:"action"`
 		} `json:"unitScopedRoles"`
@@ -87,7 +89,8 @@ func (c *Config) LoadFromJSONReader(r io.Reader) error {
 	}
 
 	c.GroupMappings = jc.GroupMappings
-	c.MachineUnits = jc.MachineUnits // Store machine units
+	c.MachineUnits = jc.MachineUnits
+	c.DefaultUserRoles = jc.DefaultUserRoles
 
 	// Parse unit-scoped roles
 	c.UnitScopedRoles = make(map[string][]Permission)
@@ -113,9 +116,10 @@ func (c *Config) LoadFromYAMLReader(r io.Reader) error {
 			Resource string `yaml:"resource"`
 			Action   string `yaml:"action"`
 		} `yaml:"rolePermissions"`
-		GroupMappings   map[string][]string `yaml:"groupMappings"`
-		MachineUnits    map[string][]string `yaml:"machineUnits"` // Machine-to-unit mappings
-		UnitScopedRoles map[string][]struct {
+		GroupMappings    map[string][]string `yaml:"groupMappings"`
+		MachineUnits     map[string][]string `yaml:"machineUnits"`
+		DefaultUserRoles []string            `yaml:"defaultUserRoles"`
+		UnitScopedRoles  map[string][]struct {
 			Resource string `yaml:"resource"`
 			Action   string `yaml:"action"`
 		} `yaml:"unitScopedRoles"`
@@ -149,6 +153,7 @@ func (c *Config) LoadFromYAMLReader(r io.Reader) error {
 
 	c.GroupMappings = yc.GroupMappings
 	c.MachineUnits = yc.MachineUnits
+	c.DefaultUserRoles = yc.DefaultUserRoles
 
 	// Parse unit-scoped roles
 	c.UnitScopedRoles = make(map[string][]Permission)

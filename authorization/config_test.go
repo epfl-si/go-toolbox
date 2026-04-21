@@ -644,6 +644,51 @@ func TestConfig_NewConfig(t *testing.T) {
 	assert.Empty(t, config.RolePermissions)
 	assert.Empty(t, config.GroupMappings)
 	assert.Empty(t, config.UnitScopedRoles)
+	assert.Nil(t, config.DefaultUserRoles)
+}
+
+func TestConfig_LoadFromJSON_WithDefaultUserRoles(t *testing.T) {
+	jsonData := `{
+		"groupMappings": {},
+		"machineUnits": {},
+		"rolePermissions": {},
+		"unitScopedRoles": {},
+		"defaultUserRoles": ["app.creator", "app.reader"]
+	}`
+
+	config := NewConfig()
+	err := config.LoadFromJSONReader(strings.NewReader(jsonData))
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"app.creator", "app.reader"}, config.DefaultUserRoles)
+}
+
+func TestConfig_LoadFromJSON_WithoutDefaultUserRoles(t *testing.T) {
+	jsonData := `{
+		"groupMappings": {},
+		"rolePermissions": {}
+	}`
+
+	config := NewConfig()
+	err := config.LoadFromJSONReader(strings.NewReader(jsonData))
+	assert.NoError(t, err)
+	assert.Nil(t, config.DefaultUserRoles)
+}
+
+func TestConfig_LoadFromYAML_WithDefaultUserRoles(t *testing.T) {
+	yamlData := `
+groupMappings: {}
+machineUnits: {}
+rolePermissions: {}
+unitScopedRoles: {}
+defaultUserRoles:
+  - app.creator
+  - app.reader
+`
+
+	config := NewConfig()
+	err := config.LoadFromYAMLReader(strings.NewReader(yamlData))
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"app.creator", "app.reader"}, config.DefaultUserRoles)
 }
 
 func TestConfig_HasUnitScopedPermission(t *testing.T) {
