@@ -392,10 +392,9 @@ func TestContext_WithResourceContext_GetResourceContextFromCtx(t *testing.T) {
 		{
 			name: "complex resource context",
 			resourceCtx: ResourceContext{
-				"appID":        "app-456",
-				"unitID":       "unit-789",
-				"environment":  "production",
-				"machineUnits": "unit-1,unit-2,unit-3",
+				"appID":       "app-456",
+				"unitID":      "unit-789",
+				"environment": "production",
 			},
 		},
 		{

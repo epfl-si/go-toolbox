@@ -114,7 +114,8 @@ func TestGlobalRoleBypass(t *testing.T) {
 			permission:   Permission{Resource: "unit", Action: "write"},
 			resourceUnit: "16000", // Unit in user's units
 			wantAuth:     false,
-			wantReason:   "user_unit_mismatch_required_16000",
+			// Unit matches but app.creator doesn't have unit:write in unitScopedRoles
+			wantReason: "user_unit_match_no_permission_16000",
 		},
 	}
 
@@ -132,7 +133,8 @@ func TestGlobalRoleBypass(t *testing.T) {
 }
 
 // TestMachineGlobalRoleBypass verifies that machines with global permissions can access
-// unit-scoped resources regardless of their unit assignments
+// unit-scoped resources regardless of their unit assignments.
+// Machine units now come from MachineAuthContext.AllowedUnits, not resource["machineUnits"].
 func TestMachineGlobalRoleBypass(t *testing.T) {
 	config := &Config{
 		RolePermissions: map[string][]Permission{
@@ -165,7 +167,6 @@ func TestMachineGlobalRoleBypass(t *testing.T) {
 		authCtx      AuthContext
 		permission   Permission
 		resourceUnit string
-		machineUnits string
 		wantAuth     bool
 		wantReason   string
 	}{
@@ -179,7 +180,6 @@ func TestMachineGlobalRoleBypass(t *testing.T) {
 			},
 			permission:   Permission{Resource: "unit", Action: "write"},
 			resourceUnit: "99999", // Unit not in machine's units
-			machineUnits: "16000", // Machine units from resolver
 			wantAuth:     true,
 			wantReason:   "machine_global_role_bypass_admin",
 		},
@@ -193,7 +193,6 @@ func TestMachineGlobalRoleBypass(t *testing.T) {
 			},
 			permission:   Permission{Resource: "unit", Action: "write"},
 			resourceUnit: "16000", // Unit in machine's units
-			machineUnits: "16000", // Machine units from resolver
 			wantAuth:     false,
 			wantReason:   "machine_unit_match_no_permission_16000",
 		},
@@ -207,7 +206,6 @@ func TestMachineGlobalRoleBypass(t *testing.T) {
 			},
 			permission:   Permission{Resource: "app", Action: "read"},
 			resourceUnit: "16000", // Unit in machine's units
-			machineUnits: "16000", // Machine units from resolver
 			wantAuth:     true,
 			wantReason:   "machine_global_role_bypass_service.principal",
 		},
@@ -216,8 +214,7 @@ func TestMachineGlobalRoleBypass(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resource := ResourceContext{
-				"unitID":       tt.resourceUnit,
-				"machineUnits": tt.machineUnits,
+				"unitID": tt.resourceUnit,
 			}
 
 			authorized, reason := evaluator.Evaluate(tt.authCtx, tt.permission, resource)
