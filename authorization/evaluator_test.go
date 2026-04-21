@@ -1,7 +1,6 @@
 package authorization
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -433,7 +432,7 @@ func TestEvaluator_User_UnitScoped_GlobalPermissionDoesNotBypass(t *testing.T) {
 		"unitID": "unit-456",
 	}
 
-	// MUST BE DENIED - Global permissions cannot bypass unit scoping
+	// Global permissions SHOULD bypass unit scoping
 	authorized, reason := evaluator.Evaluate(userCtx, Permission{Resource: "app", Action: "write"}, resource)
 	assert.True(t, authorized, "Global admin permission SHOULD bypass unit scoping")
 	assert.Equal(t, "user_global_role_bypass_admin", reason)
@@ -468,9 +467,10 @@ func TestEvaluator_User_UnitScoped_NoUnitScopedPermission(t *testing.T) {
 	}
 
 	// Should be denied because readonly role doesn't have unit-scoped write permission
+	// Unit matches, but no role grants unit-scoped permission for app:write
 	authorized, reason := evaluator.Evaluate(userCtx, Permission{Resource: "app", Action: "write"}, resource)
 	assert.False(t, authorized)
-	assert.Contains(t, reason, "user_unit_mismatch")
+	assert.Equal(t, "user_unit_match_no_permission_unit-123", reason)
 }
 
 // ============================================================================
@@ -526,7 +526,8 @@ func TestEvaluator_Machine_GlobalPermission_ViaGroups(t *testing.T) {
 
 	authorized, reason := evaluator.Evaluate(machineCtx, Permission{Resource: "app", Action: "read"}, resource)
 	assert.True(t, authorized)
-	assert.Equal(t, "machine_global_group_role_bypass_service.principal", reason)
+	// Unified path: group-mapped roles go through getRoles(), same reason format
+	assert.Equal(t, "machine_global_role_bypass_service.principal", reason)
 }
 
 func TestEvaluator_Machine_CombinedRoles(t *testing.T) {
@@ -559,20 +560,24 @@ func TestEvaluator_Machine_CombinedRoles(t *testing.T) {
 	assert.True(t, authorized1)
 	assert.Equal(t, "machine_global_role_bypass_service.principal", reason1)
 
-	// Should have access via group role
+	// Should have access via group role (unified path merges both role sources)
 	authorized2, reason2 := evaluator.Evaluate(machineCtx, Permission{Resource: "app", Action: "read"}, resource)
 	assert.True(t, authorized2)
-	// Could be either machine_role or machine_group_role depending on order
-	assert.True(t, reason2 == "machine_global_role_bypass_service.principal" || reason2 == "machine_global_group_role_bypass_readonly")
+	// Could be either role since getRoles() deduplicates via map (iteration order not guaranteed)
+	assert.True(t, reason2 == "machine_global_role_bypass_service.principal" || reason2 == "machine_global_role_bypass_readonly")
 }
 
 // ============================================================================
 // 4.5 Machine Permission Evaluation - Unit-Scoped (CRITICAL SECURITY TESTS)
 // ============================================================================
 
-func TestEvaluator_Machine_UnitScoped_WithResolver_MatchingUnit(t *testing.T) {
+// Machine unit data now comes from MachineAuthContext.AllowedUnits, not resource["machineUnits"].
+// The evaluator reads authCtx.GetUnits() for both users and machines.
+
+func TestEvaluator_Machine_UnitScoped_WithAllowedUnits_MatchingUnit(t *testing.T) {
 	config := &Config{
 		RolePermissions: map[string][]Permission{
+			// app.creator has global app:write — will bypass unit scoping
 			"app.creator": {
 				{Resource: "app", Action: "write"},
 			},
@@ -592,76 +597,9 @@ func TestEvaluator_Machine_UnitScoped_WithResolver_MatchingUnit(t *testing.T) {
 		ServicePrincipalID: "sp-123",
 		ClientID:           "client-456",
 		Roles:              []string{"app.creator"},
+		AllowedUnits:       []string{"unit-123", "unit-456"},
 	}
 
-	// Resource with machineUnits populated by resolver
-	resource := ResourceContext{
-		"unitID":       "unit-123",
-		"machineUnits": "unit-123,unit-456",
-	}
-
-	authorized, reason := evaluator.Evaluate(machineCtx, Permission{Resource: "app", Action: "write"}, resource)
-	assert.True(t, authorized)
-	assert.Equal(t, "machine_global_role_bypass_app.creator", reason)
-}
-
-func TestEvaluator_Machine_UnitScoped_WithResolver_NoMatch(t *testing.T) {
-	config := &Config{
-		RolePermissions: map[string][]Permission{
-			"app.creator": {
-				{Resource: "app", Action: "write"},
-			},
-		},
-		UnitScopedRoles: map[string][]Permission{
-			"app.creator": {
-				{Resource: "app", Action: "read"},
-				{Resource: "app", Action: "write"},
-				{Resource: "secret", Action: "write"},
-			},
-		},
-	}
-
-	evaluator := NewPolicyEvaluator(config, nil)
-
-	machineCtx := &MachineAuthContext{
-		ServicePrincipalID: "sp-123",
-		Roles:              []string{"app.creator"},
-	}
-
-	resource := ResourceContext{
-		"unitID":       "unit-999",
-		"machineUnits": "unit-123,unit-456",
-	}
-
-	authorized, reason := evaluator.Evaluate(machineCtx, Permission{Resource: "app", Action: "write"}, resource)
-	assert.True(t, authorized)
-	assert.Equal(t, "machine_global_role_bypass_app.creator", reason)
-}
-
-func TestEvaluator_Machine_UnitScoped_WithoutResolver(t *testing.T) {
-	config := &Config{
-		RolePermissions: map[string][]Permission{
-			"app.creator": {
-				{Resource: "app", Action: "write"},
-			},
-		},
-		UnitScopedRoles: map[string][]Permission{
-			"app.creator": {
-				{Resource: "app", Action: "read"},
-				{Resource: "app", Action: "write"},
-				{Resource: "secret", Action: "write"},
-			},
-		},
-	}
-
-	evaluator := NewPolicyEvaluator(config, nil)
-
-	machineCtx := &MachineAuthContext{
-		ServicePrincipalID: "sp-123",
-		Roles:              []string{"app.creator"},
-	}
-
-	// Resource has unitID but machineUnits not populated (no resolver)
 	resource := ResourceContext{
 		"unitID": "unit-123",
 	}
@@ -671,9 +609,10 @@ func TestEvaluator_Machine_UnitScoped_WithoutResolver(t *testing.T) {
 	assert.Equal(t, "machine_global_role_bypass_app.creator", reason)
 }
 
-func TestEvaluator_Machine_UnitScoped_EmptyMachineUnits(t *testing.T) {
+func TestEvaluator_Machine_UnitScoped_WithAllowedUnits_NoMatch(t *testing.T) {
 	config := &Config{
 		RolePermissions: map[string][]Permission{
+			// app.creator has global app:write — will bypass unit scoping
 			"app.creator": {
 				{Resource: "app", Action: "write"},
 			},
@@ -692,16 +631,85 @@ func TestEvaluator_Machine_UnitScoped_EmptyMachineUnits(t *testing.T) {
 	machineCtx := &MachineAuthContext{
 		ServicePrincipalID: "sp-123",
 		Roles:              []string{"app.creator"},
+		AllowedUnits:       []string{"unit-123", "unit-456"},
 	}
 
 	resource := ResourceContext{
-		"unitID":       "unit-123",
-		"machineUnits": "",
+		"unitID": "unit-999",
 	}
 
 	authorized, reason := evaluator.Evaluate(machineCtx, Permission{Resource: "app", Action: "write"}, resource)
 	assert.True(t, authorized)
 	assert.Equal(t, "machine_global_role_bypass_app.creator", reason)
+}
+
+func TestEvaluator_Machine_UnitScoped_NoAllowedUnits(t *testing.T) {
+	config := &Config{
+		RolePermissions: map[string][]Permission{
+			// app.creator has global app:write — will bypass unit scoping
+			"app.creator": {
+				{Resource: "app", Action: "write"},
+			},
+		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
+			},
+		},
+	}
+
+	evaluator := NewPolicyEvaluator(config, nil)
+
+	machineCtx := &MachineAuthContext{
+		ServicePrincipalID: "sp-123",
+		Roles:              []string{"app.creator"},
+		// No AllowedUnits
+	}
+
+	resource := ResourceContext{
+		"unitID": "unit-123",
+	}
+
+	authorized, reason := evaluator.Evaluate(machineCtx, Permission{Resource: "app", Action: "write"}, resource)
+	assert.True(t, authorized)
+	assert.Equal(t, "machine_global_role_bypass_app.creator", reason)
+}
+
+func TestEvaluator_Machine_UnitScoped_NoGlobalPerm_NoUnits(t *testing.T) {
+	config := &Config{
+		RolePermissions: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "unit", Action: "read"},
+				// NOTE: 'app:write' is NOT in global permissions
+			},
+		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "read"},
+				{Resource: "app", Action: "write"},
+				{Resource: "secret", Action: "write"},
+			},
+		},
+	}
+
+	evaluator := NewPolicyEvaluator(config, nil)
+
+	machineCtx := &MachineAuthContext{
+		ServicePrincipalID: "sp-123",
+		Roles:              []string{"app.creator"},
+		// No AllowedUnits — cannot access unit-scoped resources
+	}
+
+	resource := ResourceContext{
+		"unitID": "unit-123",
+	}
+
+	authorized, reason := evaluator.Evaluate(machineCtx, Permission{Resource: "app", Action: "write"}, resource)
+	assert.False(t, authorized)
+	assert.Equal(t, "machine_no_units_configured", reason)
 }
 
 // CRITICAL SECURITY TEST
@@ -733,15 +741,14 @@ func TestEvaluator_Machine_UnitScoped_GlobalPermissionDoesNotBypass(t *testing.T
 		ServicePrincipalID: "sp-admin",
 		ClientID:           "client-admin",
 		Roles:              []string{"admin"},
+		AllowedUnits:       []string{"unit-123", "unit-789"},
 	}
 
-	// Resource is unit-scoped, machine has different units
 	resource := ResourceContext{
-		"unitID":       "unit-456",
-		"machineUnits": "unit-123,unit-789",
+		"unitID": "unit-456",
 	}
 
-	// MUST BE DENIED - Global permissions cannot bypass unit scoping
+	// Global permissions SHOULD bypass unit scoping for machines too
 	authorized, reason := evaluator.Evaluate(machineCtx, Permission{Resource: "app", Action: "write"}, resource)
 	assert.True(t, authorized, "Global admin permission SHOULD bypass unit scoping for machines")
 	assert.Equal(t, "machine_global_role_bypass_admin", reason)
@@ -885,47 +892,6 @@ func TestEvaluator_HasUnitScopedPermission(t *testing.T) {
 	}
 }
 
-func TestEvaluator_SplitString(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		delimiter string
-		want      []string
-	}{
-		{
-			name:      "single value",
-			input:     "unit-123",
-			delimiter: ",",
-			want:      []string{"unit-123"},
-		},
-		{
-			name:      "multiple values",
-			input:     "unit-123,unit-456,unit-789",
-			delimiter: ",",
-			want:      []string{"unit-123", "unit-456", "unit-789"},
-		},
-		{
-			name:      "different delimiter",
-			input:     "a;b;c",
-			delimiter: ";",
-			want:      []string{"a", "b", "c"},
-		},
-		{
-			name:      "delimiter at end",
-			input:     "a,b,",
-			delimiter: ",",
-			want:      []string{"a", "b", ""},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := strings.Split(tt.input, tt.delimiter)
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
 func TestEvaluator_NewPolicyEvaluator_Defaults(t *testing.T) {
 	// Test with nil config
 	evaluator1 := NewPolicyEvaluator(nil, nil)
@@ -981,6 +947,7 @@ func TestEvaluator_NoUnits(t *testing.T) {
 	evaluator := NewPolicyEvaluator(config, nil)
 
 	// User with no units trying to access unit-scoped resource
+	// Since app.creator has global app:write, global bypass takes priority
 	userCtx := &UserAuthContext{
 		UniqueID: "user-1",
 		Groups:   []string{"APP-CREATORS"},
@@ -994,4 +961,37 @@ func TestEvaluator_NoUnits(t *testing.T) {
 	authorized, reason := evaluator.Evaluate(userCtx, Permission{Resource: "app", Action: "write"}, resource)
 	assert.True(t, authorized)
 	assert.Equal(t, "user_global_role_bypass_app.creator", reason)
+}
+
+func TestEvaluator_NoUnits_NoGlobalPerm(t *testing.T) {
+	config := &Config{
+		GroupMappings: map[string][]string{
+			"APP-CREATORS": {"app.creator"},
+		},
+		RolePermissions: map[string][]Permission{
+			// app.creator has NO global app:write
+		},
+		UnitScopedRoles: map[string][]Permission{
+			"app.creator": {
+				{Resource: "app", Action: "write"},
+			},
+		},
+	}
+
+	evaluator := NewPolicyEvaluator(config, nil)
+
+	// User with no units, no global permission — should get "no_units_configured"
+	userCtx := &UserAuthContext{
+		UniqueID: "user-1",
+		Groups:   []string{"APP-CREATORS"},
+		Units:    []string{},
+	}
+
+	resource := ResourceContext{
+		"unitID": "unit-123",
+	}
+
+	authorized, reason := evaluator.Evaluate(userCtx, Permission{Resource: "app", Action: "write"}, resource)
+	assert.False(t, authorized)
+	assert.Equal(t, "user_no_units_configured", reason)
 }

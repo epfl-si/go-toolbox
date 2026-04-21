@@ -114,12 +114,12 @@ func TestSimpleAuthorizer_HasPermission_WithEnhancer(t *testing.T) {
 	machineCtx := &MachineAuthContext{
 		ServicePrincipalID: "sp-1",
 		Roles:              []string{"app.creator"},
+		AllowedUnits:       []string{"unit-123", "unit-456"},
 	}
 
 	resource := ResourceContext{
-		"appID":        "app-1",
-		"unitID":       "unit-123",
-		"machineUnits": "unit-123,unit-456", // Pre-enhanced resource
+		"appID":  "app-1",
+		"unitID": "unit-123",
 	}
 
 	authorized, err := authorizer.HasPermission(context.Background(), machineCtx, Permission{Resource: "app", Action: "write"}, resource)
@@ -426,12 +426,12 @@ func TestSimpleAuthorizer_Integration_MachineFlow(t *testing.T) {
 			machineCtx: &MachineAuthContext{
 				ServicePrincipalID: "sp-2",
 				Roles:              []string{"app.creator"},
+				AllowedUnits:       []string{"unit-123", "unit-456"},
 			},
 			permission: Permission{Resource: "app", Action: "write"},
 			resource: ResourceContext{
-				"appID":        "app-1",
-				"unitID":       "unit-123",
-				"machineUnits": "unit-123,unit-456", // Pre-enhanced resource
+				"appID":  "app-1",
+				"unitID": "unit-123",
 			},
 			wantAuth: true,
 		},
@@ -440,12 +440,12 @@ func TestSimpleAuthorizer_Integration_MachineFlow(t *testing.T) {
 			machineCtx: &MachineAuthContext{
 				ServicePrincipalID: "sp-3",
 				Roles:              []string{"app.creator"},
+				AllowedUnits:       []string{"unit-123", "unit-456"},
 			},
 			permission: Permission{Resource: "app", Action: "write"},
 			resource: ResourceContext{
-				"appID":        "app-1",
-				"unitID":       "unit-999",
-				"machineUnits": "unit-123,unit-456", // Pre-enhanced resource
+				"appID":  "app-1",
+				"unitID": "unit-999",
 			},
 			wantAuth: false,
 		},
