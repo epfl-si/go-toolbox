@@ -3,6 +3,7 @@ package authorization
 
 import (
 	"context"
+	"slices"
 
 	"go.uber.org/zap"
 )
@@ -36,29 +37,18 @@ func NewSimpleAuthorizer(evaluator *PolicyEvaluator, log *zap.Logger) *SimpleAut
 	}
 }
 
-// HasRole checks if the auth context has a specific role
+// HasRole checks if the auth context has a specific role.
+// Uses the same unified role resolution as the evaluator (direct + group-mapped, deduplicated).
 func (a *SimpleAuthorizer) HasRole(authCtx AuthContext, role string) bool {
-	// Get all roles for the auth context
-	var roles []string
+	roles := a.evaluator.getRoles(authCtx)
 
-	if authCtx.IsMachine() {
-		// For machines, check direct roles
-		roles = authCtx.GetRoles()
-	} else {
-		// For users, get roles from group mappings
-		roles = a.evaluator.config.GetRolesForGroups(authCtx.GetGroups())
-	}
-
-	// Check if the requested role is present
-	for _, r := range roles {
-		if r == role {
-			a.log.Debug("Role check passed",
-				zap.String("identifier", authCtx.GetIdentifier()),
-				zap.String("role", role),
-				zap.Bool("is_user", authCtx.IsUser()),
-			)
-			return true
-		}
+	if slices.Contains(roles, role) {
+		a.log.Debug("Role check passed",
+			zap.String("identifier", authCtx.GetIdentifier()),
+			zap.String("role", role),
+			zap.Bool("is_user", authCtx.IsUser()),
+		)
+		return true
 	}
 
 	a.log.Debug("Role check failed",
