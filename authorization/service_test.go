@@ -256,6 +256,63 @@ func TestService_HasRole(t *testing.T) {
 	assert.False(t, hasRole)
 }
 
+func TestService_HasAnyRole(t *testing.T) {
+	config := &Config{
+		GroupMappings: map[string][]string{
+			"ADMINS":  {"admin"},
+			"READERS": {"readonly"},
+		},
+		RolePermissions: map[string][]Permission{},
+	}
+
+	evaluator := NewPolicyEvaluator(config, nil)
+	authorizer := NewSimpleAuthorizer(evaluator, nil)
+	service := NewService(authorizer, nil)
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("GET", "/test", nil)
+
+	userCtx := &UserAuthContext{
+		UniqueID: "user-1",
+		Groups:   []string{"READERS"},
+	}
+	SetAuthContext(c, userCtx)
+
+	// Has readonly but not admin — should match on "admin", "readonly"
+	has, err := service.HasAnyRole(c, "admin", "readonly")
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	// Has readonly — should match
+	has, err = service.HasAnyRole(c, "readonly")
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	// Does not have admin or app.creator
+	has, err = service.HasAnyRole(c, "admin", "app.creator")
+	assert.NoError(t, err)
+	assert.False(t, has)
+
+	// Empty roles list
+	has, err = service.HasAnyRole(c)
+	assert.NoError(t, err)
+	assert.False(t, has)
+}
+
+func TestService_HasAnyRole_NoAuthContext(t *testing.T) {
+	service := NewService(nil, nil)
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("GET", "/test", nil)
+
+	_, err := service.HasAnyRole(c, "admin")
+	assert.Error(t, err)
+}
+
 func TestService_CheckPermission(t *testing.T) {
 	config := &Config{
 		RolePermissions: map[string][]Permission{
