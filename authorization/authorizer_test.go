@@ -88,6 +88,46 @@ func TestSimpleAuthorizer_HasRole_Machine_NoRole(t *testing.T) {
 	assert.False(t, authorizer.HasRole(machineCtx, "admin"))
 }
 
+func TestSimpleAuthorizer_HasRole_Machine_ViaGroupMapping(t *testing.T) {
+	config := &Config{
+		GroupMappings: map[string][]string{
+			"AppRole1": {"service.principal"},
+		},
+		RolePermissions: map[string][]Permission{},
+	}
+
+	evaluator := NewPolicyEvaluator(config, nil)
+	authorizer := NewSimpleAuthorizer(evaluator, nil)
+
+	machineCtx := &MachineAuthContext{
+		ServicePrincipalID: "sp-1",
+		Groups:             []string{"AppRole1"},
+	}
+
+	// Machine gets service.principal via group mapping (was a bug before 1A fix)
+	assert.True(t, authorizer.HasRole(machineCtx, "service.principal"))
+	assert.False(t, authorizer.HasRole(machineCtx, "admin"))
+}
+
+func TestSimpleAuthorizer_HasRole_User_DirectRole(t *testing.T) {
+	config := &Config{
+		GroupMappings:   map[string][]string{},
+		RolePermissions: map[string][]Permission{},
+	}
+
+	evaluator := NewPolicyEvaluator(config, nil)
+	authorizer := NewSimpleAuthorizer(evaluator, nil)
+
+	userCtx := &UserAuthContext{
+		UniqueID: "user-1",
+		Roles:    []string{"app.creator"},
+	}
+
+	// User gets role via direct Roles field (was a bug before 1A fix)
+	assert.True(t, authorizer.HasRole(userCtx, "app.creator"))
+	assert.False(t, authorizer.HasRole(userCtx, "admin"))
+}
+
 // ============================================================================
 // 5.2 SimpleAuthorizer - HasPermission
 // ============================================================================
