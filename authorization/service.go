@@ -85,6 +85,21 @@ func (s *Service) HasRole(c *gin.Context, role string) (bool, error) {
 	return s.authorizer.HasRole(authCtx, role), nil
 }
 
+// HasAnyRole checks if the current auth context has at least one of the given roles
+func (s *Service) HasAnyRole(c *gin.Context, roles ...string) (bool, error) {
+	authCtx, err := GetAuthContext(c)
+	if err != nil {
+		return false, fmt.Errorf("failed to get auth context: %w", err)
+	}
+
+	for _, role := range roles {
+		if s.authorizer.HasRole(authCtx, role) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // GetUserRoles returns the roles for the current user context
 func (s *Service) GetUserRoles(c *gin.Context) ([]string, error) {
 	authCtx, err := GetAuthContext(c)
