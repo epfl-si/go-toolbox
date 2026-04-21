@@ -547,6 +547,29 @@ func TestGetAuthContext_NotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "no authentication context found")
 }
 
+func TestMustGetAuthContext_Success(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("GET", "/test", nil)
+
+	userCtx := &UserAuthContext{UniqueID: "user-1"}
+	SetAuthContext(c, userCtx)
+
+	retrieved := MustGetAuthContext(c)
+	assert.Equal(t, userCtx, retrieved)
+}
+
+func TestMustGetAuthContext_Panics(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("GET", "/test", nil)
+
+	assert.PanicsWithValue(t,
+		"authorization.MustGetAuthContext: no auth context found — is RequirePermission middleware applied on this route?",
+		func() { MustGetAuthContext(c) },
+	)
+}
+
 func TestSetAuthContext(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
