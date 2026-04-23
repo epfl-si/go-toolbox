@@ -2,12 +2,14 @@ package authorization
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
@@ -286,6 +288,62 @@ func (c *Config) HasRolePermission(role string, permission Permission) bool {
 // GetRolesForGroup returns the roles associated with a group
 func (c *Config) GetRolesForGroup(group string) []string {
 	return c.GroupMappings[group]
+}
+
+// Merge performs an additive merge of other into c. Fields in other win on
+// conflict; nil/empty fields in other are ignored.
+func (c *Config) Merge(other *Config, log *zap.Logger) {
+	if other == nil {
+		return
+	}
+	for clientID, units := range other.MachineUnits {
+		c.MachineUnits[clientID] = units
+		if log != nil {
+			log.Debug("merged machine unit mapping",
+				zap.String("client_id", clientID),
+				zap.Strings("units", units))
+		}
+	}
+	for group, roles := range other.GroupMappings {
+		c.GroupMappings[group] = roles
+	}
+	for role, perms := range other.RolePermissions {
+		c.RolePermissions[role] = perms
+	}
+	for role, perms := range other.UnitScopedRoles {
+		c.UnitScopedRoles[role] = perms
+	}
+	if len(other.DefaultUserRoles) > 0 {
+		c.DefaultUserRoles = other.DefaultUserRoles
+	}
+}
+
+var defaultConfigPaths = []string{
+	"/etc/authorization.json",
+	"config/authorization.json",
+}
+
+// LoadDefaultPolicyDefinition searches standard paths for an authorization
+// configuration file and returns the first one that loads successfully.
+func LoadDefaultPolicyDefinition(log *zap.Logger) (*Config, error) {
+	for _, path := range defaultConfigPaths {
+		info, err := os.Stat(path)
+		if err != nil || info.IsDir() {
+			continue
+		}
+		c := NewConfig()
+		if err := c.LoadFromFile(path); err != nil {
+			if log != nil {
+				log.Warn("failed to load authorization config", zap.String("path", path), zap.Error(err))
+			}
+			continue
+		}
+		if log != nil {
+			log.Info("loaded authorization policy", zap.String("path", path))
+		}
+		return c, nil
+	}
+	return nil, errors.New("no authorization configuration file found in default paths")
 }
 
 // GetRolesForGroups returns all unique roles for a set of groups

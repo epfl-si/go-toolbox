@@ -77,7 +77,7 @@ type MachineAuthContext struct {
 	ClientID           string
 	Groups             []string // App roles for machines
 	Roles              []string // Direct roles from token
-	AllowedUnits       []string // Allowed organizational units
+	AllowedUnits       []string // Allowed organizational units. TODO(v2): rename to Units to match UserAuthContext.Units (same concept, different names are a historical artifact)
 }
 
 // GetIdentifier returns the service principal ID

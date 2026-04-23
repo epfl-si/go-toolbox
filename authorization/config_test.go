@@ -806,6 +806,87 @@ rolePermissions: {}
 	assert.True(t, config.HasUnitScopedPermission("app.creator", Permission{Resource: "app", Action: "write"}))
 }
 
+// ============================================================================
+// Merge Tests
+// ============================================================================
+
+func TestConfig_Merge_MachineUnits(t *testing.T) {
+	base := NewConfig()
+	base.MachineUnits["client-a"] = []string{"unit-1"}
+	base.MachineUnits["client-b"] = []string{"unit-2"}
+
+	other := NewConfig()
+	other.MachineUnits["client-b"] = []string{"unit-3"} // conflict: other wins
+	other.MachineUnits["client-c"] = []string{"unit-4"} // new entry
+
+	base.Merge(other, nil)
+
+	assert.Equal(t, []string{"unit-1"}, base.MachineUnits["client-a"], "untouched entry preserved")
+	assert.Equal(t, []string{"unit-3"}, base.MachineUnits["client-b"], "other wins on conflict")
+	assert.Equal(t, []string{"unit-4"}, base.MachineUnits["client-c"], "new entry added")
+}
+
+func TestConfig_Merge_AllFields(t *testing.T) {
+	base := NewConfig()
+	base.GroupMappings["group-a"] = []string{"role-1"}
+	base.RolePermissions["role-1"] = []Permission{{Resource: "app", Action: "read"}}
+	base.UnitScopedRoles["role-1"] = []Permission{{Resource: "app", Action: "read"}}
+	base.DefaultUserRoles = []string{"role-1"}
+
+	other := NewConfig()
+	other.GroupMappings["group-b"] = []string{"role-2"}
+	other.RolePermissions["role-2"] = []Permission{{Resource: "app", Action: "write"}}
+	other.UnitScopedRoles["role-2"] = []Permission{{Resource: "app", Action: "write"}}
+	other.DefaultUserRoles = []string{"role-2"}
+
+	base.Merge(other, nil)
+
+	assert.Contains(t, base.GroupMappings, "group-a")
+	assert.Contains(t, base.GroupMappings, "group-b")
+	assert.Contains(t, base.RolePermissions, "role-1")
+	assert.Contains(t, base.RolePermissions, "role-2")
+	assert.Contains(t, base.UnitScopedRoles, "role-1")
+	assert.Contains(t, base.UnitScopedRoles, "role-2")
+	assert.Equal(t, []string{"role-2"}, base.DefaultUserRoles)
+}
+
+func TestConfig_Merge_NilOther(t *testing.T) {
+	base := NewConfig()
+	base.GroupMappings["group-a"] = []string{"role-1"}
+
+	// Should not panic
+	base.Merge(nil, nil)
+
+	assert.Equal(t, []string{"role-1"}, base.GroupMappings["group-a"])
+}
+
+func TestConfig_Merge_EmptyFields(t *testing.T) {
+	base := NewConfig()
+	base.GroupMappings["group-a"] = []string{"role-1"}
+	base.DefaultUserRoles = []string{"role-1"}
+
+	other := NewConfig()
+	// other has empty maps and nil DefaultUserRoles — should not overwrite base
+
+	base.Merge(other, nil)
+
+	assert.Equal(t, []string{"role-1"}, base.GroupMappings["group-a"])
+	assert.Equal(t, []string{"role-1"}, base.DefaultUserRoles)
+}
+
+// ============================================================================
+// LoadDefaultPolicyDefinition Tests
+// ============================================================================
+
+func TestLoadDefaultPolicyDefinition_NoFile(t *testing.T) {
+	// Neither default path should exist in the test runner's environment
+	// (this test relies on /etc/authorization.json and config/authorization.json
+	// not existing — which is the case in CI and local dev for the library).
+	_, err := LoadDefaultPolicyDefinition(nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no authorization configuration file found")
+}
+
 func TestConfig_GetDefaultConfig_HasUnitScopedRoles(t *testing.T) {
 	config := GetDefaultConfig()
 
