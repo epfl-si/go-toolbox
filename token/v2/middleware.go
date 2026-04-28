@@ -136,6 +136,16 @@ func UnifiedJWTMiddleware(config MiddlewareConfig) gin.HandlerFunc {
 	}
 }
 
+// GetClaims retrieves the UnifiedClaims stored in context by UnifiedJWTMiddleware.
+func GetClaims(c *gin.Context) (*UnifiedClaims, bool) {
+	v, ok := c.Get(string(ContextKeyClaims))
+	if !ok {
+		return nil, false
+	}
+	claims, ok := v.(*UnifiedClaims)
+	return claims, ok
+}
+
 // MachineTokenMiddleware creates a middleware that validates machine tokens
 // and requires the token to be a machine token.
 func MachineTokenMiddleware(validator TokenValidator, logger *zap.Logger) gin.HandlerFunc {
