@@ -120,6 +120,7 @@ type ResourceEnhancer interface {
 
 **Built-in enhancers**:
 - `ParamEnhancer`: Extracts URL path parameters (e.g., `/apps/:id`)
+- `MultiParamEnhancer`: Extracts multiple URL path parameters at once
 - `QueryEnhancer`: Extracts query parameters (e.g., `?unit=16000`)
 - `BodyEnhancer`: Extracts data from JSON request body
 - `HeaderEnhancer`: Extracts HTTP headers
@@ -157,14 +158,22 @@ type Service struct {
     log        *zap.Logger
 }
 
-// Create middleware for different scenarios
+// Middleware factories
 func (s *Service) RequirePermission(permission Permission, enhancer ResourceEnhancer) gin.HandlerFunc
 func (s *Service) RequireRole(role string) gin.HandlerFunc
+func (s *Service) RequireAdmin() gin.HandlerFunc
+func (s *Service) RequireReadOnly() gin.HandlerFunc
 func (s *Service) RequireAppAccess(action string, enhancer ResourceEnhancer) gin.HandlerFunc
+func (s *Service) RequireUnitAccess(action string, enhancer ResourceEnhancer) gin.HandlerFunc
+func (s *Service) RequireSystemAccess(action string) gin.HandlerFunc
 
-// Utility methods for programmatic checks
+// Programmatic checks
 func (s *Service) CanAccess(c *gin.Context, permission Permission, resource ResourceContext) (bool, error)
+func (s *Service) CanAccessWithEnhancer(c *gin.Context, permission Permission, enhancer ResourceEnhancer) (bool, error)
 func (s *Service) HasRole(c *gin.Context, role string) (bool, error)
+func (s *Service) GetUserRoles(c *gin.Context) ([]string, error)
+func (s *Service) IsUser(c *gin.Context) (bool, error)
+func (s *Service) IsMachine(c *gin.Context) (bool, error)
 ```
 
 ### 7. Config
@@ -179,6 +188,7 @@ type Config struct {
     GroupMappings   map[string][]string     // AD group -> role mappings
     MachineUnits    map[string][]string     // Client ID -> allowed units
     UnitScopedRoles map[string][]Permission // Unit-scoped roles
+    DefaultUserRoles []string               // Applied automatically to every user token
 }
 ```
 
@@ -439,7 +449,7 @@ func (e *AuthContextExtractor) extractFromClaims(ctx context.Context, claims *to
 }
 ```
 
-**Note**: For production use with repository lookups (e.g., fetching units from database), see the reference implementation in `md-app-portal-api/internal/api/auth/auth_extractor.go`.
+**Note**: For production use with repository lookups, use `NewMiddleware` with a `UnitsResolver`, see the [v1.12.0 Simplification](#v1120-simplification) section.
 
 ### Programmatic Authorization Checks
 
@@ -746,33 +756,7 @@ func createMachineUnitEnhancer(log *zap.Logger) authorization.ResourceEnhancer {
 
 ### Complete Example
 
-For a full production-ready implementation, see the `md-app-portal-api` reference implementation:
-
-**Key files:**
-- **Token validation setup**: `md-app-portal-api/internal/api/routes.go:59-116`
-  - Shows token validator with chained test validators
-  - Demonstrates clientToUnits mapping configuration
-
-- **AuthContext extraction**: `md-app-portal-api/internal/api/auth/auth_extractor.go`
-  - `AuthContextExtractor` struct and `ExtractAuthContext()` middleware
-  - Handles both machine and user tokens
-  - Includes repository fallback for fetching units from database
-
-- **Authorization middleware**: `md-app-portal-api/internal/api/auth/middleware.go`
-  - `AuthorizationMiddleware` wrapper pattern
-  - Integrates `ExtractAuthContext()` middleware
-  - Provides `RequirePermission()` convenience methods
-
-- **Route configuration**: `md-app-portal-api/internal/api/routes.go:133-232`
-  - Shows middleware application pattern: `token.UnifiedJWTMiddleware()` → `ExtractAuthContext()`
-  - Demonstrates permission-based authorization with enhancers
-
-- **Custom enhancers**: `md-app-portal-api/internal/api/auth/enhancers/app_enhancers.go`
-  - `MachineUnitEnhancer` for M2M authorization
-  - `AppEnhancer` for database lookups
-  - `CreateAppEnhancer` for chained enhancement
-
-This implementation demonstrates the complete integration pattern with token/v2 for authentication and the authorization package for permission evaluation.
+For the recommended production integration pattern, see the [v1.12.0 Simplification](#v1120-simplification) section, which shows the full before/after for `md-app-portal-api` and a quick-reference snippet covering policy loading, middleware setup, and route protection.
 
 ## Key Design Decisions
 
@@ -794,4 +778,328 @@ The package includes comprehensive tests:
 Run tests with:
 ```bash
 go test ./...
+```
+
+---
+
+## v1.12.0 Simplification
+
+v1.12.0 introduces high-level helpers that eliminate the ~300 lines of boilerplate that each consumer service had to implement identically.
+
+### Background
+
+Protecting a Gin endpoint with role-based authorization previously required each service to implement:
+
+| File | Lines | Content |
+|---|---|---|
+| `auth_extractor.go` | ~177 | Reading claims, type-asserting, building `UserAuthContext` / `MachineAuthContext`, repository fallback for units, default role injection |
+| `middleware.go` | ~126 | Assembling `PolicyEvaluator` → `SimpleAuthorizer` → `Service`, Gin wrappers for `ExtractAuthContext`, `RequirePermission` |
+
+These ~300 lines were nearly identical across services. The helpers below replace them.
+
+---
+
+### New helpers
+
+#### `tokenV2.GetClaims(c)`
+
+Replaces the dual-key lookup from the Gin context:
+
+```go
+// Before
+claimsVal, exists := c.Get("unified_claims")
+if !exists {
+    claimsVal, exists = c.Get("claims")
+    if !exists {
+        return nil, errors.New("no unified claims found in context")
+    }
+}
+claims, ok := claimsVal.(*tokenV2.UnifiedClaims)
+if !ok {
+    return nil, errors.New("invalid claims type")
+}
+
+// After
+claims, ok := tokenV2.GetClaims(c)
+```
+
+---
+
+#### `NewDefaultService(config, log)`
+
+Replaces the manual three-layer assembly:
+
+```go
+// Before
+evaluator := authorization.NewPolicyEvaluator(config, log)
+authorizer := authorization.NewSimpleAuthorizer(evaluator, log)
+service    := authorization.NewService(authorizer, log)
+
+// After
+service := authorization.NewDefaultService(config, log)
+```
+
+---
+
+#### `DefaultExtractor(opts ExtractorOptions)`
+
+A generic Gin middleware that builds an `AuthContext` from the `UnifiedClaims` set by `UnifiedJWTMiddleware`. It handles:
+
+- user and machine tokens
+- repository fallback for units (when the Entra token contains none)
+- automatic application of `Config.DefaultUserRoles`
+- role enrichment via `RolesAugmenter` (external source: DB, gRPC, …)
+
+```go
+extractor := authorization.DefaultExtractor(authorization.ExtractorOptions{
+    Config: authzCfg,
+    Log:    log,
+    UnitsResolver: func(ctx context.Context, uid string) ([]string, error) {
+        return repository.ListUnits(ctx, uid)
+    },
+    RolesAugmenter: func(ctx context.Context, uid string, derived []string) ([]string, error) {
+        extra, err := roleProvider.GetRoles(uid)
+        if err != nil {
+            return derived, nil // graceful degradation
+        }
+        return append(derived, extra...), nil
+    },
+})
+```
+
+`UnitsResolver` and `RolesAugmenter` are optional.
+
+---
+
+#### `Config.DefaultUserRoles`
+
+A field on `Config` (loaded from `authorization.json`) that `DefaultExtractor` automatically applies to every user token. Replaces hard-coded logic in each service:
+
+```go
+// Before: in each service's auth_extractor.go
+if !slices.Contains(roles, "app.creator") {
+    roles = append(roles, "app.creator")
+}
+
+// After: in authorization.json
+{ "defaultUserRoles": ["app.creator"] }
+```
+
+---
+
+#### `NewMiddleware(opts ExtractorOptions)`
+
+Combines `NewDefaultService` and `DefaultExtractor` into a single object, and exposes the methods used in `routes.go` directly:
+
+```go
+mw := authorization.NewMiddleware(authorization.ExtractorOptions{
+    Config:        authzCfg,
+    Log:           log,
+    UnitsResolver: repository.ListUnits,
+})
+
+r.Use(mw.ExtractAuthContext())
+r.GET("/apps", mw.RequirePermission(auth.AppRead, enhancer), s.ListApps)
+```
+
+Exposed methods: `ExtractAuthContext()`, `RequirePermission()`, `RequireAnyPermission()`, `Service()`.
+
+---
+
+#### `tokenV2.AuthMiddleware(cfg)`
+
+Combines `UnifiedJWTMiddleware` and an `AuthContext` extractor into a single `r.Use()`:
+
+```go
+// Before: two separate Use() calls
+r.Use(tokenV2.UnifiedJWTMiddleware(tokenV2.MiddlewareConfig{Validator: v, Logger: log}))
+r.Use(s.AuthzMiddleware.ExtractAuthContext())
+
+// After: a single Use()
+r.Use(tokenV2.AuthMiddleware(tokenV2.AuthMiddlewareConfig{
+    MiddlewareConfig: tokenV2.MiddlewareConfig{Validator: v, Logger: log},
+    AuthExtractor:    s.AuthzMiddleware.ExtractAuthContext(),
+}))
+```
+
+---
+
+### Before / After: complete example (md-app-portal-api)
+
+#### Before: `internal/api/auth/auth_extractor.go` (~177 lines)
+
+```go
+type ContextExtractor struct {
+    config     *authorization.Config
+    repository application.Repository
+    log        *zap.Logger
+}
+
+func NewContextExtractor(config *authorization.Config, repository application.Repository, log *zap.Logger) *ContextExtractor { ... }
+
+func (e *ContextExtractor) ExtractAuthContextFromGinContext(c *gin.Context) (authorization.AuthContext, error) {
+    claimsVal, exists := c.Get("unified_claims")
+    if !exists {
+        claimsVal, exists = c.Get("claims")
+        if !exists {
+            return nil, errors.New("no unified claims found in context")
+        }
+    }
+    claims, ok := claimsVal.(*tokenV2.UnifiedClaims)
+    if !ok {
+        return nil, errors.New("invalid claims type")
+    }
+    return e.ExtractFromClaimsWithContext(c.Request.Context(), claims)
+}
+
+func (e *ContextExtractor) ExtractFromClaimsWithContext(ctx context.Context, claims *tokenV2.UnifiedClaims) (authorization.AuthContext, error) {
+    if tokenV2.IsMachineToken(claims) {
+        appID := tokenV2.GetApplicationID(claims)
+        allowedUnits := []string{}
+        if units, ok := e.config.MachineUnits[appID]; ok {
+            allowedUnits = units
+        }
+        return &authorization.MachineAuthContext{
+            ServicePrincipalID: claims.Subject,
+            ClientID:           appID,
+            Groups:             claims.Groups,
+            Roles:              claims.Roles,
+            AllowedUnits:       allowedUnits,
+        }, nil
+    }
+
+    units := make([]string, 0, len(claims.Units))
+    for _, unit := range claims.Units {
+        units = append(units, unit.ID)
+    }
+    if len(units) == 0 && e.repository != nil {
+        fetchedUnits, err := e.repository.ListUnits(ctx, claims.UniqueID)
+        if err != nil {
+            e.log.Warn("Failed to fetch units for user, continuing with empty units", ...)
+        } else {
+            units = fetchedUnits
+        }
+    }
+
+    roles := e.config.GetRolesForGroups(claims.Groups)
+    if !slices.Contains(roles, "app.creator") {   // hard-coded default role
+        roles = append(roles, "app.creator")
+    }
+
+    return &authorization.UserAuthContext{
+        UniqueID: claims.UniqueID,
+        Groups:   claims.Groups,
+        Units:    units,
+        Roles:    roles,
+    }, nil
+}
+```
+
+#### Before: `internal/api/auth/middleware.go` (~126 lines)
+
+```go
+type AuthorizationMiddleware struct {
+    authzService *authorization.Service
+    extractor    *ContextExtractor
+    log          *zap.Logger
+}
+
+func NewAuthorizationMiddleware(config *authorization.Config, _ any, repository application.Repository, log *zap.Logger) *AuthorizationMiddleware {
+    evaluator    := authorization.NewPolicyEvaluator(config, log)
+    authorizer   := authorization.NewSimpleAuthorizer(evaluator, log)
+    authzService := authorization.NewService(authorizer, log)
+    extractor    := NewContextExtractor(config, repository, log)
+    return &AuthorizationMiddleware{authzService: authzService, extractor: extractor, log: log}
+}
+
+func (m *AuthorizationMiddleware) ExtractAuthContext() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        if c.Request.Method == http.MethodOptions { return }
+        authCtx, err := m.extractor.ExtractAuthContextFromGinContext(c)
+        if err != nil {
+            m.log.Debug("Failed to extract auth context from token", zap.Error(err))
+            c.Next()
+            return
+        }
+        authorization.SetAuthContext(c, authCtx)
+        c.Set("username", authCtx.GetIdentifier())
+        c.Next()
+    }
+}
+
+func (m *AuthorizationMiddleware) RequirePermission(permission authorization.Permission, enhancer authorization.ResourceEnhancer) gin.HandlerFunc {
+    return authorization.RequirePermission(permission, enhancer, m.authzService.GetAuthorizer(), m.log)
+}
+```
+
+---
+
+#### After: `internal/api/auth/middleware.go` (~79 lines, `auth_extractor.go` deleted)
+
+```go
+type AuthorizationMiddleware struct {
+    mw  *authorization.Middleware
+    log *zap.Logger
+}
+
+func NewAuthorizationMiddleware(config *authorization.Config, _ any, repository application.Repository, log *zap.Logger) *AuthorizationMiddleware {
+    opts := authorization.ExtractorOptions{Config: config, Log: log}
+    if repository != nil {
+        opts.UnitsResolver = repository.ListUnits
+    }
+    return &AuthorizationMiddleware{mw: authorization.NewMiddleware(opts), log: log}
+}
+
+func (m *AuthorizationMiddleware) ExtractAuthContext() gin.HandlerFunc {
+    return m.mw.ExtractAuthContext()
+}
+
+func (m *AuthorizationMiddleware) RequirePermission(permission authorization.Permission, enhancer authorization.ResourceEnhancer) gin.HandlerFunc {
+    return m.mw.RequirePermission(permission, enhancer)
+}
+```
+
+---
+
+### Summary
+
+| | Before | After |
+|---|---|---|
+| `auth_extractor.go` | 177 lines | deleted |
+| `middleware.go` | 126 lines | 79 lines |
+| Default role | hard-coded in Go | `"defaultUserRoles"` in JSON |
+| Claims key | magic string `"unified_claims"` / `"claims"` | `tokenV2.GetClaims(c)` |
+| **Total** | **~303 lines** | **~79 lines** (−74%) |
+
+---
+
+### Quick Reference
+
+```go
+import (
+    "github.com/epfl-si/go-toolbox/authorization"
+    tokenV2 "github.com/epfl-si/go-toolbox/token/v2"
+)
+
+// Load the policy (looks for /etc/authorization.json then config/authorization.json)
+cfg, err := authorization.LoadDefaultPolicyDefinition(log)
+
+// Build the all-in-one middleware
+mw := authorization.NewMiddleware(authorization.ExtractorOptions{
+    Config:        cfg,
+    Log:           log,
+    UnitsResolver: repository.ListUnits,           // optional
+    RolesAugmenter: func(ctx context.Context, uid string, derived []string) ([]string, error) {
+        // enrich from an external source
+    },                                             // optional
+})
+
+// Wire into Gin
+r.Use(tokenV2.AuthMiddleware(tokenV2.AuthMiddlewareConfig{
+    MiddlewareConfig: tokenV2.MiddlewareConfig{Validator: validator, Logger: log},
+    AuthExtractor:    mw.ExtractAuthContext(),
+}))
+
+// Protect a route
+r.GET("/resource", mw.RequirePermission(MyPermission, enhancer), handler)
 ```
