@@ -146,6 +146,27 @@ func GetClaims(c *gin.Context) (*UnifiedClaims, bool) {
 	return claims, ok
 }
 
+// AuthMiddlewareConfig configures the combined JWT + auth-extraction middleware.
+type AuthMiddlewareConfig struct {
+	MiddlewareConfig
+	AuthExtractor gin.HandlerFunc
+}
+
+// AuthMiddleware combines UnifiedJWTMiddleware with an auth context extractor
+// in a single handler.
+func AuthMiddleware(cfg AuthMiddlewareConfig) gin.HandlerFunc {
+	jwt := UnifiedJWTMiddleware(cfg.MiddlewareConfig)
+	return func(c *gin.Context) {
+		jwt(c)
+		if c.IsAborted() {
+			return
+		}
+		if cfg.AuthExtractor != nil {
+			cfg.AuthExtractor(c)
+		}
+	}
+}
+
 // MachineTokenMiddleware creates a middleware that validates machine tokens
 // and requires the token to be a machine token.
 func MachineTokenMiddleware(validator TokenValidator, logger *zap.Logger) gin.HandlerFunc {
