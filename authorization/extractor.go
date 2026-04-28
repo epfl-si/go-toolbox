@@ -36,6 +36,10 @@ func DefaultExtractor(opts ExtractorOptions) gin.HandlerFunc {
 		if c.Request.Method == "OPTIONS" {
 			return
 		}
+		if existing, err := GetAuthContext(c); err == nil && existing != nil {
+			c.Next()
+			return
+		}
 		claims, ok := tokenV2.GetClaims(c)
 		if !ok {
 			c.Next()
