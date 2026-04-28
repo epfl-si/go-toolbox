@@ -28,6 +28,17 @@ func NewService(authorizer *SimpleAuthorizer, log *zap.Logger) *Service {
 	}
 }
 
+// NewDefaultService creates a Service from a Config, building the evaluator
+// and authorizer internally.
+func NewDefaultService(config *Config, log *zap.Logger) *Service {
+	if log == nil {
+		log = zap.NewNop()
+	}
+	evaluator := NewPolicyEvaluator(config, log)
+	authorizer := NewSimpleAuthorizer(evaluator, log)
+	return &Service{authorizer: authorizer, log: log}
+}
+
 // RequirePermission creates a middleware that requires a specific permission
 func (s *Service) RequirePermission(permission Permission, enhancer ResourceEnhancer) gin.HandlerFunc {
 	return RequirePermission(permission, enhancer, s.authorizer, s.log)
