@@ -3,11 +3,14 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"time"
 
 	go_ora "github.com/sijms/go-ora/v2"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
@@ -81,6 +84,72 @@ func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) 
 	log.Info(fmt.Sprintf("GetOracleDB:successfully connected on Oracle host '%s' to database '%s' as user '%s'", host, name, user))
 
 	return conn, nil
+}
+
+type viaSSHDialer struct {
+	client *ssh.Client
+}
+
+func (self *viaSSHDialer) Dial(addr string) (net.Conn, error) {
+	return self.client.Dial("tcp", addr)
+}
+
+func getSSHDialer(sshHost string, sshPort int, sshUser string, sshPass string) (viaSSHDialer, error) {
+	var agentClient agent.Agent
+
+	// Estabilish a connection to the local ssh-agent
+	if conn, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
+		//nolint:errcheck
+		defer conn.Close()
+
+		agentClient = agent.NewClient(conn)
+	}
+
+	sshConfig := &ssh.ClientConfig{
+		User: sshUser,
+		Auth: []ssh.AuthMethod{},
+	}
+
+	if agentClient != nil {
+		sshConfig.Auth = append(sshConfig.Auth, ssh.PublicKeysCallback(agentClient.Signers))
+	}
+
+	if sshPass != "" {
+		sshConfig.Auth = append(sshConfig.Auth, ssh.PasswordCallback(func() (string, error) {
+			return sshPass, nil
+		}))
+	}
+
+	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", sshHost, sshPort), sshConfig)
+	if err != nil {
+		return viaSSHDialer{}, fmt.Errorf("getSSHDialer: %w", err)
+	}
+
+	return viaSSHDialer{client: sshClient}, nil
+}
+
+//nolint:revive
+func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, sshHost string, sshPort int, sshUser string, sshPass string) (*sql.DB, error) {
+	sshDialer, err := getSSHDialer(sshHost, sshPort, sshUser, sshPass)
+	if err != nil {
+		return nil, fmt.Errorf("GetOracleDBViaSSH: %w", err)
+	}
+
+	dsn := go_ora.BuildUrl(dbHost, dbPort, dbService, dbUser, dbPass, nil)
+
+	config, err := go_ora.ParseConfig(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("GetOracleDBViaSSH: %w", err)
+	}
+
+	config.RegisterDial(sshDialer.client.DialContext)
+	go_ora.RegisterConnConfig(config)
+	db, err := sql.Open("oracle", "")
+	if err != nil {
+		return nil, fmt.Errorf("GetOracleDBViaSSH: %w", err)
+	}
+
+	return db, nil
 }
 
 func getConnectString(dbHost, dbName, dbUser, dbPassword, dbPort, dbParam string) string {
