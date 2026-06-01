@@ -90,11 +90,30 @@ type ViaSSHDialer struct {
 	client *ssh.Client
 }
 
+type deadlineIgnorer struct {
+	net.Conn
+}
+
+// Override SetDeadline to silently swallow the error
+func (_ deadlineIgnorer) SetDeadline(_ time.Time) error {
+	return nil
+}
+
+// Override SetReadDeadline to silently swallow the error
+func (_ deadlineIgnorer) SetReadDeadline(_ time.Time) error {
+	return nil
+}
+
+// Override SetWriteDeadline to silently swallow the error
+func (_ deadlineIgnorer) SetWriteDeadline(_ time.Time) error {
+	return nil
+}
+
 // Dial dials the given address to create a connection to the desired destination
 func (v *ViaSSHDialer) Dial(addr string) (net.Conn, error) {
 	conn, err := v.client.Dial("tcp", addr)
 
-	return conn, fmt.Errorf("ViaSSHDialer.Dial: %w", err)
+	return deadlineIgnorer{conn}, fmt.Errorf("ViaSSHDialer.Dial: %w", err)
 }
 
 // GetSSHDialer creates an instance of ViaSSHDialer that uses Public key authentication
