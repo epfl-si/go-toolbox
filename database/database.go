@@ -11,7 +11,6 @@ import (
 
 	go_ora "github.com/sijms/go-ora/v2"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/knownhosts"
 
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
@@ -99,7 +98,7 @@ func (v *ViaSSHDialer) Dial(addr string) (net.Conn, error) {
 }
 
 // GetSSHDialer creates an instance of ViaSSHDialer that uses Public key authentication
-func GetSSHDialer(sshHost string, sshPort int, sshUser string, keyPath string, knownHostsPath string, passphrase string) (ViaSSHDialer, error) {
+func GetSSHDialer(sshHost string, sshPort int, sshUser string, keyPath string, hostKey ssh.PublicKey, passphrase string) (ViaSSHDialer, error) {
 	// get signer from privatekey, optionally encrypted with a passphrase
 	keyBytes, err := os.ReadFile(keyPath) //nolint:gosec
 	if err != nil {
@@ -116,17 +115,11 @@ func GetSSHDialer(sshHost string, sshPort int, sshUser string, keyPath string, k
 		return ViaSSHDialer{}, fmt.Errorf("database.GetSSHDialer: %w", err)
 	}
 
-	// use known hosts to avoid MIM
-	hostKeyCallback, err := knownhosts.New(knownHostsPath)
-	if err != nil {
-		return ViaSSHDialer{}, fmt.Errorf("database.GetSSHDialer: %w", err)
-	}
-
 	// create SSH config
 	sshConfig := &ssh.ClientConfig{
 		User:            sshUser,
 		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
-		HostKeyCallback: hostKeyCallback,
+		HostKeyCallback: ssh.FixedHostKey(hostKey),
 		Timeout:         30 * time.Second,
 	}
 
