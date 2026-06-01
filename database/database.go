@@ -44,27 +44,29 @@ func GetGormDB(log *zap.Logger, host, name, user, pass, port, param string, maxI
 	if os.Getenv("LOG_DB_SILENT") == "1" {
 		logLevel = logger.Silent
 	}
-	db, err := gorm.Open(mysql.Open(getConnectString(host, name, user, pass, port, param)), &gorm.Config{
+	gormDB, err := gorm.Open(mysql.Open(getConnectString(host, name, user, pass, port, param)), &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {
 		log.Error(fmt.Sprintf("GetGormDB:Hostname:'%s': %s", host, err))
-		return nil, err
+
+		return nil, fmt.Errorf("GetGormDB: %w", err)
 	}
 
 	// log.Info(fmt.Sprintf("GetGormDB:successfully connected on host '%s' to database '%s' as user '%s' (%s)", host, name, user, param))
 
-	sqlDB, err := db.DB()
+	sqlDB, err := gormDB.DB()
 	if err != nil {
 		log.Error(fmt.Sprintf("GetGormDB:Hostname:'%s': %s", host, err))
-		return nil, err
+
+		return nil, fmt.Errorf("GetGormDB: %w", err)
 	}
 	sqlDB.SetMaxIdleConns(maxIdle)
 	sqlDB.SetMaxOpenConns(maxOpen)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 	sqlDB.SetConnMaxIdleTime(2 * time.Minute)
 
-	return db, nil
+	return gormDB, nil
 }
 
 // GetOracleDB returns an Oracle database connection.
@@ -73,12 +75,14 @@ func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) 
 	connStr := go_ora.BuildUrl(host, iPort, service, user, pass, nil)
 	conn, err := sql.Open("oracle", connStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetOracleDB: %w", err)
 	}
 	// check for error
-	err = conn.Ping()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err = conn.PingContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetOracleDB: %w", err)
 	}
 
 	log.Info(fmt.Sprintf("GetOracleDB:successfully connected on Oracle host '%s' to database '%s' as user '%s'", host, name, user))
@@ -90,22 +94,6 @@ type SSHDialerForDB struct {
 	client *ssh.Client
 }
 
-type SSHConnForDB struct {
-	net.Conn
-}
-
-func (_ *SSHConnForDB) SetDeadline(_ time.Time) error {
-	return nil
-}
-
-func (_ *SSHConnForDB) SetReadDeadline(_ time.Time) error {
-	return nil
-}
-
-func (_ *SSHConnForDB) SetWriteDeadline(_ time.Time) error {
-	return nil
-}
-
 // Dial dials the given address to create a connection to the desired destination
 func (v *SSHDialerForDB) Dial(ctx context.Context, n string, addr string) (net.Conn, error) {
 	conn, err := v.client.DialContext(ctx, n, addr)
@@ -113,7 +101,26 @@ func (v *SSHDialerForDB) Dial(ctx context.Context, n string, addr string) (net.C
 		err = fmt.Errorf("ViaSSHDialer.Dial: %w", err)
 	}
 
-	return &SSHConnForDB{conn}, err
+	return &sshConnForDB{conn}, err
+}
+
+type sshConnForDB struct {
+	net.Conn
+}
+
+// SetDeadline masks deadline requests as SSH tunnel has a global timeout
+func (*sshConnForDB) SetDeadline(_ time.Time) error {
+	return nil
+}
+
+// SetReadDeadline masks deadline requests as SSH tunnel has a global timeout
+func (*sshConnForDB) SetReadDeadline(_ time.Time) error {
+	return nil
+}
+
+// SetWriteDeadline masks deadline requests as SSH tunnel has a global timeout
+func (*sshConnForDB) SetWriteDeadline(_ time.Time) error {
+	return nil
 }
 
 // GetSSHDialer creates an instance of ViaSSHDialer that uses Public key authentication
@@ -152,16 +159,14 @@ func GetSSHDialer(sshHost string, sshPort int, sshUser string, keyPath string, h
 }
 
 // GetOracleDBViaSSH connects to an Oracle server using an SSH tunnel
-func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, sshDialer SSHDialerForDB) (*sql.DB, error) {
+func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, dbOptions map[string]string, sshDialer SSHDialerForDB) (*sql.DB, error) {
 	// create db url, register the ssh dial to the config, and use the config to create a db connection
-	dsn := go_ora.BuildUrl(dbHost, dbPort, dbService, dbUser, dbPass, nil)
+	dsn := go_ora.BuildUrl(dbHost, dbPort, dbService, dbUser, dbPass, dbOptions)
 
 	config, err := go_ora.ParseConfig(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("database.GetOracleDBViaSSH: %w", err)
 	}
-
-	config.Timeout = 0
 
 	config.RegisterDial(sshDialer.Dial)
 	go_ora.RegisterConnConfig(config)
