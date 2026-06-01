@@ -109,8 +109,11 @@ func (_ *SSHConnForDB) SetWriteDeadline(_ time.Time) error {
 // Dial dials the given address to create a connection to the desired destination
 func (v *SSHDialerForDB) Dial(ctx context.Context, n string, addr string) (net.Conn, error) {
 	conn, err := v.client.DialContext(ctx, n, addr)
+	if err != nil {
+		err = fmt.Errorf("ViaSSHDialer.Dial: %w", err)
+	}
 
-	return &SSHConnForDB{conn}, fmt.Errorf("ViaSSHDialer.Dial: %w", err)
+	return &SSHConnForDB{conn}, err
 }
 
 // GetSSHDialer creates an instance of ViaSSHDialer that uses Public key authentication
