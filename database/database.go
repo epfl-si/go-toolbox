@@ -86,23 +86,39 @@ func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) 
 	return conn, nil
 }
 
-type ViaSSHDialer struct {
+type SSHDialerForDB struct {
 	client *ssh.Client
 }
 
-// Dial dials the given address to create a connection to the desired destination
-func (v *ViaSSHDialer) Dial(addr string) (net.Conn, error) {
-	conn, err := v.client.Dial("tcp", addr)
+type SSHConnForDB struct {
+	net.Conn
+}
 
-	return conn, fmt.Errorf("ViaSSHDialer.Dial: %w", err)
+func (_ *SSHConnForDB) SetDeadline(_ time.Time) error {
+	return nil
+}
+
+func (_ *SSHConnForDB) SetReadDeadline(_ time.Time) error {
+	return nil
+}
+
+func (_ *SSHConnForDB) SetWriteDeadline(_ time.Time) error {
+	return nil
+}
+
+// Dial dials the given address to create a connection to the desired destination
+func (v *SSHDialerForDB) Dial(ctx context.Context, n string, addr string) (net.Conn, error) {
+	conn, err := v.client.DialContext(ctx, n, addr)
+
+	return &SSHConnForDB{conn}, fmt.Errorf("ViaSSHDialer.Dial: %w", err)
 }
 
 // GetSSHDialer creates an instance of ViaSSHDialer that uses Public key authentication
-func GetSSHDialer(sshHost string, sshPort int, sshUser string, keyPath string, hostKey ssh.PublicKey, passphrase string) (ViaSSHDialer, error) {
+func GetSSHDialer(sshHost string, sshPort int, sshUser string, keyPath string, hostKey ssh.PublicKey, passphrase string) (SSHDialerForDB, error) {
 	// get signer from privatekey, optionally encrypted with a passphrase
 	keyBytes, err := os.ReadFile(keyPath) //nolint:gosec
 	if err != nil {
-		return ViaSSHDialer{}, fmt.Errorf("database.GetSSHDialer: %w", err)
+		return SSHDialerForDB{}, fmt.Errorf("database.GetSSHDialer: %w", err)
 	}
 
 	var signer ssh.Signer
@@ -112,7 +128,7 @@ func GetSSHDialer(sshHost string, sshPort int, sshUser string, keyPath string, h
 		signer, err = ssh.ParsePrivateKeyWithPassphrase(keyBytes, []byte(passphrase))
 	}
 	if err != nil {
-		return ViaSSHDialer{}, fmt.Errorf("database.GetSSHDialer: %w", err)
+		return SSHDialerForDB{}, fmt.Errorf("database.GetSSHDialer: %w", err)
 	}
 
 	// create SSH config
@@ -126,14 +142,14 @@ func GetSSHDialer(sshHost string, sshPort int, sshUser string, keyPath string, h
 	// estabilish connection and return the dialer
 	sshClient, err := ssh.Dial("tcp", net.JoinHostPort(sshHost, strconv.Itoa(sshPort)), sshConfig)
 	if err != nil {
-		return ViaSSHDialer{}, fmt.Errorf("database.GetSSHDialer: %w", err)
+		return SSHDialerForDB{}, fmt.Errorf("database.GetSSHDialer: %w", err)
 	}
 
-	return ViaSSHDialer{client: sshClient}, nil
+	return SSHDialerForDB{client: sshClient}, nil
 }
 
 // GetOracleDBViaSSH connects to an Oracle server using an SSH tunnel
-func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, sshDialer ViaSSHDialer) (*sql.DB, error) {
+func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, sshDialer SSHDialerForDB) (*sql.DB, error) {
 	// create db url, register the ssh dial to the config, and use the config to create a db connection
 	dsn := go_ora.BuildUrl(dbHost, dbPort, dbService, dbUser, dbPass, nil)
 
@@ -144,7 +160,7 @@ func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, ssh
 
 	config.Timeout = 0
 
-	config.RegisterDial(sshDialer.client.DialContext)
+	config.RegisterDial(sshDialer.Dial)
 	go_ora.RegisterConnConfig(config)
 	dbConn, err := sql.Open("oracle", "")
 	if err != nil {
