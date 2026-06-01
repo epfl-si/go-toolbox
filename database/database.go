@@ -161,6 +161,8 @@ func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, ssh
 		return nil, fmt.Errorf("database.GetOracleDBViaSSH: %w", err)
 	}
 
+	config.Timeout = -1
+
 	config.RegisterDial(sshDialer.client.DialContext)
 	go_ora.RegisterConnConfig(config)
 	dbConn, err := sql.Open("oracle", "")
