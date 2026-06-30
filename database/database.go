@@ -77,7 +77,18 @@ const (
 )
 
 // GetOracleDB returns an Oracle database connection.
+//
+// Deprecated: use GetOracleDBContext, which honors the caller's context
+// deadline instead of a hardcoded 10s timeout.
 func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) (*sql.DB, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return GetOracleDBContext(ctx, log, host, name, user, pass, port, service)
+}
+
+// GetOracleDBContext returns an Oracle database connection, using ctx for the
+// connectivity Ping so the caller controls the deadline.
+func GetOracleDBContext(ctx context.Context, log *zap.Logger, host, name, user, pass, port, service string) (*sql.DB, error) {
 	if log == nil {
 		log = zap.NewNop()
 	}
@@ -93,8 +104,6 @@ func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) 
 		return nil, fmt.Errorf("GetOracleDB: %w", err)
 	}
 	// check for error
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	err = conn.PingContext(ctx)
 	if err != nil {
 		_ = conn.Close()
@@ -190,7 +199,18 @@ func GetSSHDialer(sshHost string, sshPort int, sshUser string, keyPath string, h
 }
 
 // GetOracleDBViaSSH connects to an Oracle server using an SSH tunnel
+//
+// Deprecated: use GetOracleDBViaSSHContext, which honors the caller's context
+// deadline instead of a hardcoded 10s timeout.
 func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, dbOptions map[string]string, sshDialer SSHDialerForDB) (*sql.DB, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return GetOracleDBViaSSHContext(ctx, dbHost, dbUser, dbPass, dbService, dbPort, dbOptions, sshDialer)
+}
+
+// GetOracleDBViaSSHContext connects to an Oracle server using an SSH tunnel,
+// using ctx for the connectivity Ping so the caller controls the deadline.
+func GetOracleDBViaSSHContext(ctx context.Context, dbHost, dbUser, dbPass, dbService string, dbPort int, dbOptions map[string]string, sshDialer SSHDialerForDB) (*sql.DB, error) {
 	// create db url, register the ssh dial to the config, and use the config to create a db connection
 	dsn := go_ora.BuildUrl(dbHost, dbPort, dbService, dbUser, dbPass, dbOptions)
 
@@ -207,8 +227,6 @@ func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, dbO
 	}
 
 	// test connection using a ping
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	err = dbConn.PingContext(ctx)
 	if err != nil {
 		_ = dbConn.Close()
