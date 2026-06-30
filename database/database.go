@@ -69,6 +69,13 @@ func GetGormDB(log *zap.Logger, host, name, user, pass, port, param string, maxI
 	return gormDB, nil
 }
 
+// Default Oracle connection-pool bounds. Hardcoded for now to keep the
+// GetOracleDB* signatures non-breaking; superseded by OracleConfig (phase 3.2).
+const (
+	oracleMaxIdleConns = 2
+	oracleMaxOpenConns = 10
+)
+
 // GetOracleDB returns an Oracle database connection.
 func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) (*sql.DB, error) {
 	if log == nil {
@@ -94,6 +101,13 @@ func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) 
 		return nil, fmt.Errorf("GetOracleDB: %w", err)
 	}
 
+	// configure the pool, aligned with GetGormDB, so Oracle sessions do not
+	// accumulate server-side until exhaustion
+	conn.SetMaxIdleConns(oracleMaxIdleConns)
+	conn.SetMaxOpenConns(oracleMaxOpenConns)
+	conn.SetConnMaxLifetime(time.Hour)
+	conn.SetConnMaxIdleTime(2 * time.Minute)
+
 	log.Info(fmt.Sprintf("GetOracleDB:successfully connected on Oracle host '%s' to database '%s' as user '%s'", host, name, user))
 
 	return conn, nil
@@ -101,6 +115,14 @@ func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) 
 
 type SSHDialerForDB struct {
 	client *ssh.Client
+}
+
+// Close closes the underlying SSH connection. Call it after Close() on the *sql.DB.
+func (v *SSHDialerForDB) Close() error {
+	if v.client == nil {
+		return nil
+	}
+	return v.client.Close()
 }
 
 // Dial dials the given address to create a connection to the desired destination
@@ -192,6 +214,13 @@ func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, dbO
 		_ = dbConn.Close()
 		return nil, fmt.Errorf("database.GetOracleDBViaSSH: %w", err)
 	}
+
+	// configure the pool, aligned with GetGormDB, so Oracle sessions do not
+	// accumulate server-side until exhaustion
+	dbConn.SetMaxIdleConns(oracleMaxIdleConns)
+	dbConn.SetMaxOpenConns(oracleMaxOpenConns)
+	dbConn.SetConnMaxLifetime(time.Hour)
+	dbConn.SetConnMaxIdleTime(2 * time.Minute)
 
 	// return db connection
 	return dbConn, nil
