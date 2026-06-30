@@ -82,6 +82,7 @@ func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) 
 	defer cancel()
 	err = conn.PingContext(ctx)
 	if err != nil {
+		_ = conn.Close()
 		return nil, fmt.Errorf("GetOracleDB: %w", err)
 	}
 
@@ -180,6 +181,7 @@ func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, dbO
 	defer cancel()
 	err = dbConn.PingContext(ctx)
 	if err != nil {
+		_ = dbConn.Close()
 		return nil, fmt.Errorf("database.GetOracleDBViaSSH: %w", err)
 	}
 
