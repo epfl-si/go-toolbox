@@ -71,6 +71,9 @@ func GetGormDB(log *zap.Logger, host, name, user, pass, port, param string, maxI
 
 // GetOracleDB returns an Oracle database connection.
 func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) (*sql.DB, error) {
+	if log == nil {
+		log = zap.NewNop()
+	}
 	// fail early with a clear message instead of dialing port 0 and getting an
 	// opaque "connection refused" / "invalid argument" at Ping time
 	iPort, err := strconv.Atoi(port)
