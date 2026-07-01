@@ -1,6 +1,7 @@
 package ad
 
 import (
+	"cmp"
 	"crypto/tls"
 	"fmt"
 	"os"
@@ -12,26 +13,24 @@ import (
 BindAD connects to an Active Directory server through LDAP protocol
 - ldapURL example : "ldaps://exdev.epfl.ch" (with ldaps, port 636 is induced)
 */
-func BindAD(ldapURL string, bindUsername, bindPassword string) (*ldap.Conn, error) {
-	if ldapURL == "" && os.Getenv("AD_SERVER_URL") == "" {
+func BindAD(ldapURL, bindUsername, bindPassword string) (*ldap.Conn, error) {
+
+	// Take the first non empty value
+	ldapURL = cmp.Or(ldapURL, os.Getenv("AD_SERVER_URL"))
+	if ldapURL == "" {
 		return nil, fmt.Errorf("missing AD_SERVER_URL environment variable")
 	}
-	if ldapURL == "" {
-		ldapURL = os.Getenv("AD_SERVER_URL")
-	}
 
+	// Take the first non empty value
+	bindUsername = cmp.Or(bindUsername, os.Getenv("AD_USER"))
 	if bindUsername == "" && os.Getenv("AD_USER") == "" {
 		return nil, fmt.Errorf("missing AD_USER environment variable")
 	}
-	if bindUsername == "" {
-		bindUsername = os.Getenv("AD_USER")
-	}
 
+	// Take the first non empty value
+	bindPassword = cmp.Or(bindPassword, os.Getenv("AD_PWD"))
 	if bindPassword == "" && os.Getenv("AD_PWD") == "" {
 		return nil, fmt.Errorf("missing AD_PWD environment variable")
-	}
-	if bindPassword == "" {
-		bindPassword = os.Getenv("AD_PWD")
 	}
 
 	tlsConfig := &tls.Config{
