@@ -11,14 +11,18 @@ import (
 	"strings"
 	"time"
 
-	api "github.com/epfl-si/go-toolbox/api/models"
+	toolbox_models "github.com/epfl-si/go-toolbox/api/models"
 	"github.com/epfl-si/go-toolbox/log"
+
+	// "github.com/patrickmn/go-cache"
 
 	"github.com/epfl-si/go-toolbox/messages"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
+
+var unitIdPattern = regexp.MustCompile(`^(\d+)$`)
 
 func ContextMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -157,14 +161,14 @@ func ContextMiddleware() gin.HandlerFunc {
 			// accreds: can be either a string or an array of strings, so we need to handle both cases
 			// in any case, format is <unit ID>:<unit name>:<unit path>:<status name>:<class name>
 			// for example: "14290:ISCS-IAM:EPFL VPO-SI ISCS ISCS-IAM:P:E"
-			accreds := []api.ClaimAccred{}
+			accreds := []toolbox_models.ClaimAccred{}
 			if data["accreds"] != nil {
 				switch data["accreds"].(type) {
 				case string:
 					accredsStr := data["accreds"].(string)
 					splits = strings.Split(accredsStr, ":")
 					if len(splits) == 5 {
-						accreds = append(accreds, api.ClaimAccred{
+						accreds = append(accreds, toolbox_models.ClaimAccred{
 							UnitId:     splits[0],
 							UnitName:   splits[1],
 							UnitPath:   splits[2],
@@ -177,7 +181,7 @@ func ContextMiddleware() gin.HandlerFunc {
 					for _, authorization := range accredsArray {
 						splits = strings.Split(authorization.(string), ":")
 						if len(splits) == 5 {
-							accreds = append(accreds, api.ClaimAccred{
+							accreds = append(accreds, toolbox_models.ClaimAccred{
 								UnitId:     splits[0],
 								UnitName:   splits[1],
 								UnitPath:   splits[2],
@@ -268,6 +272,75 @@ func CustomRecovery(logger *zap.Logger) gin.HandlerFunc {
 				c.Abort()
 			}
 		}()
+		c.Next()
+	}
+}
+
+// Global cache variables for GetAccredProfile
+// var superusersGroupMembersipsCache = cache.New(5*time.Minute, 10*time.Minute)
+// var accreditationRightsCache = cache.New(5*time.Minute, 10*time.Minute)
+
+// GetAccredProfile retrieve personal data in order to checkfor access control
+func AccessControlMiddleware(log *zap.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		context, err := GetContext(c)
+		if err != nil {
+			log.Error("Failed to get context", zap.Error(err))
+			c.Abort()
+			return
+		}
+
+		// get 'accreditation' right for user only if uniqueID is not a service account (ID like Mxxxxxx)
+		rights, _, _, err := GetAuthorizations(
+			context.UserId,
+			"",
+			"right",
+			"accreditation,accreditations.read,authorizations.org.read,authorizations.fin.read,sig.audit",
+			false)
+		if err != nil {
+			log.Error("Failed to get authorizations", zap.Error(err))
+			c.Abort()
+			return
+		}
+
+		// check user accreditations
+		supportAccredIds := false
+		supportAuthIds := false
+		auditorIds := false
+		accreditorIds := false
+		for _, right := range rights {
+			if right.Name == "accreditations.read" {
+				supportAccredIds = true
+				break
+			}
+			if right.Name == "authorizations.org.read" || right.Name == "authorizations.fin.read" {
+				supportAuthIds = true
+				break
+			}
+			if right.Name == "sig.audit" {
+				auditorIds = true
+				break
+			}
+			if right.Name == "accreditations" {
+				// TODO: check can be removed after "accreditation" right is reconfigured to not appear on funds
+				// only keep if unit ID
+				if unitIdPattern.MatchString(right.ResourceId) {
+					accreditorIds = true
+				}
+			}
+		}
+
+		authorized := (supportAccredIds &&
+			supportAuthIds &&
+			auditorIds &&
+			accreditorIds)
+
+		if !authorized {
+			log.Error("Not allowed", zap.Error(err))
+			c.Abort()
+			return
+		}
+
 		c.Next()
 	}
 }
