@@ -14,8 +14,8 @@ type Role struct {
 	DeputiesRightId int        `json:"deputiesrightid"`
 	DeputiesRight   *Right     `json:"deputiesright,omitempty"`
 	HasRights       string     `json:"hasrights"`
-	Delegate        string     `json:"delegate"`
-	Protected       string     `json:"protected"`
+	Delegate        bool       `json:"delegate"`
+	Protected       bool       `json:"protected"`
 	Order           int        `json:"ordre"`
 	MailList        string     `json:"maillist"`
 	ManagedRights   []*Right   `json:"managedrights,omitempty"`
