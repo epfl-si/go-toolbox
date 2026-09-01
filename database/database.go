@@ -69,21 +69,53 @@ func GetGormDB(log *zap.Logger, host, name, user, pass, port, param string, maxI
 	return gormDB, nil
 }
 
+// Default Oracle connection-pool bounds. Hardcoded for now to keep the
+// GetOracleDB* signatures non-breaking; superseded by OracleConfig (phase 3.2).
+const (
+	oracleMaxIdleConns = 2
+	oracleMaxOpenConns = 10
+)
+
 // GetOracleDB returns an Oracle database connection.
+//
+// Deprecated: use GetOracleDBContext, which honors the caller's context
+// deadline instead of a hardcoded 10s timeout.
 func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) (*sql.DB, error) {
-	iPort, _ := strconv.Atoi(port)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return GetOracleDBContext(ctx, log, host, name, user, pass, port, service)
+}
+
+// GetOracleDBContext returns an Oracle database connection, using ctx for the
+// connectivity Ping so the caller controls the deadline.
+func GetOracleDBContext(ctx context.Context, log *zap.Logger, host, name, user, pass, port, service string) (*sql.DB, error) {
+	if log == nil {
+		log = zap.NewNop()
+	}
+	// fail early with a clear message instead of dialing port 0 and getting an
+	// opaque "connection refused" / "invalid argument" at Ping time
+	iPort, err := strconv.Atoi(port)
+	if err != nil {
+		return nil, fmt.Errorf("GetOracleDB: invalid port %q: %w", port, err)
+	}
 	connStr := go_ora.BuildUrl(host, iPort, service, user, pass, nil)
 	conn, err := sql.Open("oracle", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("GetOracleDB: %w", err)
 	}
 	// check for error
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	err = conn.PingContext(ctx)
 	if err != nil {
+		_ = conn.Close()
 		return nil, fmt.Errorf("GetOracleDB: %w", err)
 	}
+
+	// configure the pool, aligned with GetGormDB, so Oracle sessions do not
+	// accumulate server-side until exhaustion
+	conn.SetMaxIdleConns(oracleMaxIdleConns)
+	conn.SetMaxOpenConns(oracleMaxOpenConns)
+	conn.SetConnMaxLifetime(time.Hour)
+	conn.SetConnMaxIdleTime(2 * time.Minute)
 
 	log.Info(fmt.Sprintf("GetOracleDB:successfully connected on Oracle host '%s' to database '%s' as user '%s'", host, name, user))
 
@@ -92,6 +124,14 @@ func GetOracleDB(log *zap.Logger, host, name, user, pass, port, service string) 
 
 type SSHDialerForDB struct {
 	client *ssh.Client
+}
+
+// Close closes the underlying SSH connection. Call it after Close() on the *sql.DB.
+func (v *SSHDialerForDB) Close() error {
+	if v.client == nil {
+		return nil
+	}
+	return v.client.Close()
 }
 
 // Dial dials the given address to create a connection to the desired destination
@@ -159,7 +199,18 @@ func GetSSHDialer(sshHost string, sshPort int, sshUser string, keyPath string, h
 }
 
 // GetOracleDBViaSSH connects to an Oracle server using an SSH tunnel
+//
+// Deprecated: use GetOracleDBViaSSHContext, which honors the caller's context
+// deadline instead of a hardcoded 10s timeout.
 func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, dbOptions map[string]string, sshDialer SSHDialerForDB) (*sql.DB, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return GetOracleDBViaSSHContext(ctx, dbHost, dbUser, dbPass, dbService, dbPort, dbOptions, sshDialer)
+}
+
+// GetOracleDBViaSSHContext connects to an Oracle server using an SSH tunnel,
+// using ctx for the connectivity Ping so the caller controls the deadline.
+func GetOracleDBViaSSHContext(ctx context.Context, dbHost, dbUser, dbPass, dbService string, dbPort int, dbOptions map[string]string, sshDialer SSHDialerForDB) (*sql.DB, error) {
 	// create db url, register the ssh dial to the config, and use the config to create a db connection
 	dsn := go_ora.BuildUrl(dbHost, dbPort, dbService, dbUser, dbPass, dbOptions)
 
@@ -176,12 +227,18 @@ func GetOracleDBViaSSH(dbHost, dbUser, dbPass, dbService string, dbPort int, dbO
 	}
 
 	// test connection using a ping
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	err = dbConn.PingContext(ctx)
 	if err != nil {
+		_ = dbConn.Close()
 		return nil, fmt.Errorf("database.GetOracleDBViaSSH: %w", err)
 	}
+
+	// configure the pool, aligned with GetGormDB, so Oracle sessions do not
+	// accumulate server-side until exhaustion
+	dbConn.SetMaxIdleConns(oracleMaxIdleConns)
+	dbConn.SetMaxOpenConns(oracleMaxOpenConns)
+	dbConn.SetConnMaxLifetime(time.Hour)
+	dbConn.SetConnMaxIdleTime(2 * time.Minute)
 
 	// return db connection
 	return dbConn, nil
